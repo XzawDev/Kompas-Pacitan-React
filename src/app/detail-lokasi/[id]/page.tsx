@@ -68,9 +68,9 @@ export default function DetailLokasi() {
     setAiError(null);
 
     try {
-      const recommendation = await GeminiAIService.generateRecommendation(
-        location
-      );
+      // PERBAIKAN: Gunakan generateLocationRecommendation bukan generateRecommendation
+      const recommendation =
+        await GeminiAIService.generateLocationRecommendation(location);
 
       setAiRecommendation(recommendation);
 
@@ -604,7 +604,7 @@ export default function DetailLokasi() {
                         {aiRecommendation.risks.length > 0 && (
                           <div>
                             <h4 className="font-bold text-lg text-dark mb-4">
-                              Potensi Risiko
+                              Potensi Resiko
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {aiRecommendation.risks.map((risk, index) => (

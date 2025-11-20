@@ -155,7 +155,7 @@ const PeluangInvestasiPage = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Page Header */}
-        <div className="text-center mb-8">
+        {/* <div className="text-center mb-8">
           <h1 className="text-2xl md:text-4xl font-bold text-dark mb-3">
             Peluang Investasi di Kabupaten Pacitan
           </h1>
@@ -163,7 +163,7 @@ const PeluangInvestasiPage = () => {
             Temukan berbagai peluang investasi menarik di 166 desa Pacitan. Dari
             sektor pariwisata, pertanian, perikanan, hingga UMKM.
           </p>
-        </div>
+        </div> */}
 
         {/* Error Message */}
         {error && (
@@ -191,11 +191,11 @@ const PeluangInvestasiPage = () => {
           <div className="relative z-10 h-full flex items-end p-6">
             <div className="w-full">
               <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                Investasi Masa Depan di Pacitan
+                Peluang Investasi di Kabupaten Pacitan
               </h1>
               <p className="text-white text-base md:text-lg mb-4">
-                Raih peluang bisnis dengan potensi keuntungan tinggi di berbagai
-                sektor unggulan
+                Temukan berbagai peluang investasi menarik di 166 desa Pacitan.
+                Dari sektor pariwisata, pertanian, perikanan, hingga UMKM.
               </p>
               <button
                 onClick={() =>

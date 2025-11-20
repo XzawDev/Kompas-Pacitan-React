@@ -182,9 +182,8 @@ export default function PetaPotensi() {
 
     setAiLoading(location.id);
     try {
-      const recommendation = await GeminiAIService.generateRecommendation(
-        location
-      );
+      const recommendation =
+        await GeminiAIService.generateLocationRecommendation(location);
 
       setAiRecommendations((prev) => ({
         ...prev,
@@ -296,7 +295,7 @@ export default function PetaPotensi() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 py-6 pt-24">
+      <main className="container mx-auto px-4 py-6">
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl md:text-4xl font-bold text-dark mb-3">
