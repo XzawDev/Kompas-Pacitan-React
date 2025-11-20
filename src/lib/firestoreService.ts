@@ -673,3 +673,45 @@ const convertFirestoreTimestamp = (timestamp: any): string => {
   // Fallback
   return new Date().toISOString();
 };
+
+// Tambahkan fungsi DESA AI RECOMMENDATIONS di firestoreService.ts
+
+export const updateDesaAIRecommendations = async (
+  desaId: string,
+  recommendations: any
+) => {
+  try {
+    await updateDoc(doc(db, "desa", desaId), {
+      aiInvestmentRecommendations: recommendations,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating AI recommendations:", error);
+    throw error;
+  }
+};
+
+export const getDesaWithAIRecommendations = async (
+  id: string
+): Promise<Desa | null> => {
+  try {
+    const docRef = doc(db, "desa", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate().toISOString(),
+        updatedAt: data.updatedAt?.toDate().toISOString(),
+        // Pastikan AI recommendations ter-include
+        aiInvestmentRecommendations: data.aiInvestmentRecommendations || null,
+      } as Desa;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting desa with AI recommendations:", error);
+    throw error;
+  }
+};

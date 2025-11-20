@@ -171,7 +171,7 @@ export interface BlobUploadResponse {
   contentDisposition: string;
 }
 
-// Tambahkan interface Desa di file types.ts
+// Di file types.ts, perbarui interface Desa
 export interface Desa {
   id: string;
   nama: string;
@@ -189,7 +189,7 @@ export interface Desa {
     pertanian: number;
   };
   asetTanah: string[];
-  wisata: string[];
+  wisata: WisataItem[]; // Ubah dari string[] ke WisataItem[]
   bumdes: string[];
   produkUnggulan: string[];
   infrastruktur: {
@@ -209,4 +209,45 @@ export interface Desa {
   galeri: string[];
   createdAt?: string;
   updatedAt?: string;
+  aiInvestmentRecommendations?: InvestmentRecommendation;
+}
+
+// Tambahkan interface untuk WisataItem
+export interface WisataItem {
+  nama: string;
+  gambar: string;
+  deskripsi: string;
+}
+
+// Tambahkan interface ini di types.ts
+export interface InvestmentRecommendation {
+  recommendations: Array<{
+    title: string;
+    description: string;
+    estimatedInvestment: string;
+    potentialROI: string;
+    timeframe: string;
+    riskLevel: "Rendah" | "Sedang" | "Tinggi";
+    keyAdvantages: string[];
+    challenges: string[];
+    targetMarket: string[];
+  }>;
+}
+
+export interface InvestmentRecommendationItem {
+  title: string;
+  description: string;
+  estimatedInvestment: string;
+  potentialROI: string;
+  timeframe: string;
+  riskLevel: "Rendah" | "Sedang" | "Tinggi";
+  keyAdvantages: string[];
+  challenges: string[];
+  targetMarket: string[];
+}
+// Tambahkan di types.ts
+export enum AnalysisType {
+  LOCATION_ANALYSIS = "location_analysis",
+  INVESTMENT_RECOMMENDATION = "investment_recommendation",
+  DESA_OVERVIEW = "desa_overview",
 }
