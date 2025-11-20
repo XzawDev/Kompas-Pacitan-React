@@ -56,10 +56,21 @@ export default function ProfilDesaPage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat data desa...</p>
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-lg p-4">
+                    <div className="h-48 bg-gray-200 rounded mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         <Footer />
@@ -70,39 +81,74 @@ export default function ProfilDesaPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        {/* Header Section dengan Gradient */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 text-white shadow-xl">
-          <div className="container mx-auto px-4 lg:px-8 max-w-7xl py-8">
-            <div className="text-center">
-              <h1 className="text-2xl md:text-4xl font-bold mb-3">
-                Profil Desa Kabupaten Pacitan
-              </h1>
-              <p className="text-base md:text-lg text-blue-100 max-w-3xl mx-auto leading-relaxed">
-                Jelajahi kekayaan dan potensi {desaData.length} desa di Pacitan.
-                Temukan peluang investasi, wisata alam, dan produk unggulan
-                setiap desa.
-              </p>
+      <div className="min-h-screen bg-gray-50">
+        <main className="container mx-auto px-4 py-6 max-w-7xl">
+          {/* Page Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-4xl font-bold text-dark mb-3">
+              Profil Desa Kabupaten Pacitan
+            </h1>
+            <p className="text-sm md:text-base text-gray-600 max-w-3xl mx-auto">
+              Jelajahi kekayaan dan potensi {desaData.length} desa di Pacitan.
+              Temukan peluang investasi, wisata alam, dan produk unggulan setiap
+              desa.
+            </p>
+          </div>
+
+          {/* Hero Section */}
+          <div
+            className="desa-hero mb-8 rounded-xl overflow-hidden"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80')",
+              height: "450px",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              position: "relative",
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60"></div>
+            <div className="relative z-10 h-full flex items-end p-6">
+              <div className="w-full">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  Keindahan dan Potensi Desa Pacitan
+                </h1>
+                <p className="text-white text-base md:text-lg mb-4">
+                  Temukan keunikan setiap desa dengan kekayaan alam, budaya, dan
+                  peluang bisnis yang menanti untuk dieksplorasi
+                </p>
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById("desa-list")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="bg-white text-primary font-semibold py-2 px-4 md:px-6 rounded-lg hover:bg-gray-100 transition text-sm"
+                >
+                  <i className="fas fa-search mr-2"></i> Jelajahi Desa
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Filter Section */}
-        <div className="container mx-auto px-4 lg:px-8 max-w-7xl py-4">
-          <div className="bg-white rounded-xl shadow-lg p-4 mb-6 border border-gray-100">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          {/* Filter Section */}
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+            <h3 className="text-lg font-bold text-dark mb-4">
+              <i className="fas fa-filter mr-2 text-primary"></i>Filter Desa
+            </h3>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex-1">
                 <label
                   htmlFor="kecamatan-filter"
-                  className="block text-sm font-semibold text-gray-800 mb-1"
+                  className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  📍 Filter Kecamatan
+                  Kecamatan
                 </label>
                 <select
                   id="kecamatan-filter"
                   value={kecamatanFilter}
                   onChange={(e) => setKecamatanFilter(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all bg-white hover:border-gray-300"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent bg-white"
                 >
                   <option value="">Semua Kecamatan</option>
                   {kecamatanList.map((kecamatan) => (
@@ -116,9 +162,9 @@ export default function ProfilDesaPage() {
               <div className="flex-1">
                 <label
                   htmlFor="search-desa"
-                  className="block text-sm font-semibold text-gray-800 mb-1"
+                  className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  🔍 Cari Desa
+                  Cari Desa
                 </label>
                 <div className="relative">
                   <input
@@ -127,24 +173,23 @@ export default function ProfilDesaPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Ketik nama desa atau kecamatan..."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 pl-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all bg-white hover:border-gray-300"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent bg-white pl-10"
                   />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <i className="fas fa-search text-sm"></i>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i className="fas fa-search text-gray-400"></i>
                   </div>
                 </div>
               </div>
 
-              <div className="flex lg:items-end">
+              <div className="items-end">
                 <button
                   onClick={() => {
                     setKecamatanFilter("");
                     setSearchTerm("");
                   }}
-                  className="w-full lg:w-auto bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-all duration-300 text-sm border border-gray-200 hover:border-gray-300 flex items-center justify-center space-x-1"
+                  className="bg-gray-100 mt-6 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-200 transition text-sm w-full md:w-auto"
                 >
-                  <i className="fas fa-redo-alt text-xs"></i>
-                  <span>Reset Filter</span>
+                  <i className="fas fa-redo-alt mr-1"></i> Reset Filter
                 </button>
               </div>
             </div>
@@ -176,7 +221,10 @@ export default function ProfilDesaPage() {
           </div>
 
           {/* Desa List Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+          <div
+            id="desa-list"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8"
+          >
             {filteredDesa.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <div className="max-w-md mx-auto">
@@ -299,8 +347,8 @@ export default function ProfilDesaPage() {
               ))
             )}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
       <Footer />
     </>
   );
