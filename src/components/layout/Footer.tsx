@@ -5,8 +5,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <i className="fas fa-map-marked-alt text-white text-lg"></i>
+              <div className="rounded-xl flex items-center justify-center">
+                <img
+                  src="/assets/images/logo.PNG"
+                  className="w-9 h-9"
+                  alt="Kompas Pacitan Logo"
+                />
               </div>
               <div>
                 <span className="text-xl font-bold">
