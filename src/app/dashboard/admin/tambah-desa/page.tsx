@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { addDesa, uploadToVercelBlob } from "@/lib/firestoreService";
-import { Desa } from "@/lib/types";
+import { Desa, WisataItem } from "@/lib/types"; // Import WisataItem
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
@@ -13,6 +13,7 @@ export default function TambahProfilDesa() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [uploadingWisata, setUploadingWisata] = useState<string | null>(null);
   const [formData, setFormData] = useState<
     Omit<Desa, "id" | "createdAt" | "updatedAt">
   >({
@@ -21,7 +22,7 @@ export default function TambahProfilDesa() {
     deskripsi: "",
     gambar: "",
     koordinat: {
-      lat: -8.2065, // Default Pacitan
+      lat: -8.2065,
       lng: 111.046,
     },
     statistik: {
@@ -31,12 +32,12 @@ export default function TambahProfilDesa() {
       pertanian: 0,
     },
     asetTanah: [],
-    wisata: [],
+    wisata: [], // Sekarang ini adalah WisataItem[]
     bumdes: [],
     produkUnggulan: [],
     infrastruktur: {
-      jalan: "Sedang",
-      air: "PDAM/Sumur",
+      jalan: "Baik",
+      air: "Tersedia",
       internet: "4G",
       sekolah: "SD/SMP",
       kesehatan: "Puskesmas Pembantu",
@@ -47,7 +48,11 @@ export default function TambahProfilDesa() {
   });
 
   const [tempAsetTanah, setTempAsetTanah] = useState("");
-  const [tempWisata, setTempWisata] = useState("");
+  const [tempWisata, setTempWisata] = useState<WisataItem>({
+    nama: "",
+    gambar: "",
+    deskripsi: "",
+  });
   const [tempBumdes, setTempBumdes] = useState("");
   const [tempProduk, setTempProduk] = useState("");
   const [tempPeluang, setTempPeluang] = useState({
@@ -56,6 +61,16 @@ export default function TambahProfilDesa() {
     estimasiBiaya: "",
     kontak: "",
   });
+  const [tempGaleri, setTempGaleri] = useState<File[]>([]);
+
+  // Cleanup object URLs
+  useEffect(() => {
+    return () => {
+      if (tempWisata.gambar.startsWith("blob:")) {
+        URL.revokeObjectURL(tempWisata.gambar);
+      }
+    };
+  }, [tempWisata.gambar]);
 
   // Cek apakah user adalah admin
   if (user?.role !== "admin") {
@@ -99,7 +114,10 @@ export default function TambahProfilDesa() {
         ...prev,
         statistik: {
           ...prev.statistik,
-          [statField]: Number(value),
+          [statField]:
+            statField === "penduduk" || statField === "umkm"
+              ? Number(value)
+              : value,
         },
       }));
     } else if (name.startsWith("infrastruktur.")) {
@@ -117,7 +135,7 @@ export default function TambahProfilDesa() {
         ...prev,
         koordinat: {
           ...prev.koordinat,
-          [coordField]: Number(value),
+          [coordField]: value,
         },
       }));
     } else {
@@ -128,8 +146,14 @@ export default function TambahProfilDesa() {
     }
   };
 
+  // Fungsi untuk mengonversi string ke number dengan handle simbol
+  const parseNumberWithSymbols = (value: string): number => {
+    const cleaned = value.replace(",", ".").replace(/[^\d.-]/g, "");
+    return parseFloat(cleaned) || 0;
+  };
+
   const handleArrayAdd = (
-    field: "asetTanah" | "wisata" | "bumdes" | "produkUnggulan",
+    field: "asetTanah" | "bumdes" | "produkUnggulan",
     value: string,
     setTemp: React.Dispatch<React.SetStateAction<string>>
   ) => {
@@ -143,12 +167,76 @@ export default function TambahProfilDesa() {
   };
 
   const handleArrayRemove = (
-    field: "asetTanah" | "wisata" | "bumdes" | "produkUnggulan",
+    field: "asetTanah" | "bumdes" | "produkUnggulan",
     index: number
   ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index),
+    }));
+  };
+
+  // Handle untuk wisata
+  const handleWisataChange = (field: keyof WisataItem, value: string) => {
+    setTempWisata((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleWisataImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("File harus berupa gambar");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran gambar tidak boleh lebih dari 5MB");
+      return;
+    }
+
+    try {
+      setUploadingWisata("wisata");
+      const imageUrl = await uploadToVercelBlob(file);
+      setTempWisata((prev) => ({
+        ...prev,
+        gambar: imageUrl,
+      }));
+    } catch (error) {
+      console.error("Error uploading wisata image:", error);
+      alert("Gagal mengupload gambar wisata");
+    } finally {
+      setUploadingWisata(null);
+    }
+  };
+
+  const handleWisataAdd = () => {
+    if (!tempWisata.nama.trim() || !tempWisata.deskripsi.trim()) {
+      alert("Nama dan deskripsi wisata harus diisi");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      wisata: [...prev.wisata, { ...tempWisata }],
+    }));
+
+    setTempWisata({
+      nama: "",
+      gambar: "",
+      deskripsi: "",
+    });
+  };
+
+  const handleWisataRemove = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      wisata: prev.wisata.filter((_, i) => i !== index),
     }));
   };
 
@@ -179,14 +267,12 @@ export default function TambahProfilDesa() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi file
     if (!file.type.startsWith("image/")) {
       alert("File harus berupa gambar");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      // 5MB
       alert("Ukuran gambar tidak boleh lebih dari 5MB");
       return;
     }
@@ -206,6 +292,49 @@ export default function TambahProfilDesa() {
     }
   };
 
+  const handleGaleriUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        alert("Semua file harus berupa gambar");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran gambar tidak boleh lebih dari 5MB");
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      const uploadedUrls: string[] = [];
+
+      for (const file of files) {
+        const imageUrl = await uploadToVercelBlob(file);
+        uploadedUrls.push(imageUrl);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        galeri: [...prev.galeri, ...uploadedUrls],
+      }));
+    } catch (error) {
+      console.error("Error uploading gallery images:", error);
+      alert("Gagal mengupload gambar galeri");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGaleriRemove = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      galeri: prev.galeri.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -214,9 +343,38 @@ export default function TambahProfilDesa() {
       return;
     }
 
+    // Konversi nilai string ke number untuk statistik
+    const dataToSubmit = {
+      ...formData,
+      statistik: {
+        penduduk: Number(formData.statistik.penduduk) || 0,
+        luas: parseNumberWithSymbols(formData.statistik.luas as any),
+        umkm: Number(formData.statistik.umkm) || 0,
+        pertanian: parseNumberWithSymbols(formData.statistik.pertanian as any),
+      },
+      koordinat: {
+        lat: parseNumberWithSymbols(formData.koordinat.lat as any),
+        lng: parseNumberWithSymbols(formData.koordinat.lng as any),
+      },
+      asetTanah: formData.asetTanah || [],
+      wisata: formData.wisata || [],
+      bumdes: formData.bumdes || [],
+      produkUnggulan: formData.produkUnggulan || [],
+      peluangInvestasi: formData.peluangInvestasi || [],
+      galeri: formData.galeri || [],
+      infrastruktur: {
+        jalan: formData.infrastruktur?.jalan || "Baik",
+        air: formData.infrastruktur?.air || "Tersedia",
+        internet: formData.infrastruktur?.internet || "4G",
+        sekolah: formData.infrastruktur?.sekolah || "SD/SMP",
+        kesehatan: formData.infrastruktur?.kesehatan || "Puskesmas Pembantu",
+        listrik: formData.infrastruktur?.listrik || "PLN",
+      },
+    };
+
     try {
       setLoading(true);
-      await addDesa(formData);
+      await addDesa(dataToSubmit);
       alert("Profil desa berhasil ditambahkan!");
       router.push("/profil-desa");
     } catch (error) {
@@ -372,6 +530,62 @@ export default function TambahProfilDesa() {
                     </label>
                   </div>
                 </div>
+
+                {/* Upload Galeri */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Galeri Desa (Multiple Images)
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+                    <div className="text-center mb-4">
+                      <i className="fas fa-images text-gray-400 text-4xl mb-3"></i>
+                      <p className="text-gray-600 mb-2">
+                        Upload gambar untuk galeri desa
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleGaleriUpload}
+                      className="hidden"
+                      id="galeri-upload"
+                    />
+                    <label
+                      htmlFor="galeri-upload"
+                      className="bg-green-600 text-white px-6 py-2 rounded-xl hover:bg-green-700 transition-all cursor-pointer inline-block"
+                    >
+                      {loading ? "Uploading..." : "Pilih Multiple Gambar"}
+                    </label>
+
+                    {/* Preview Galeri */}
+                    {formData.galeri.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                          Gambar Galeri:
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {formData.galeri.map((image, index) => (
+                            <div key={index} className="relative">
+                              <img
+                                src={image}
+                                alt={`Galeri ${index + 1}`}
+                                className="h-24 w-full object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleGaleriRemove(index)}
+                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                              >
+                                <i className="fas fa-times"></i>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -388,13 +602,16 @@ export default function TambahProfilDesa() {
                     Latitude
                   </label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     name="koordinat.lat"
                     value={formData.koordinat.lat}
                     onChange={handleInputChange}
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="-8.2065"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Contoh: -8.2065 (bisa menggunakan titik dan minus)
+                  </p>
                 </div>
 
                 <div>
@@ -402,13 +619,16 @@ export default function TambahProfilDesa() {
                     Longitude
                   </label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     name="koordinat.lng"
                     value={formData.koordinat.lng}
                     onChange={handleInputChange}
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="111.046"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Contoh: 111.046 (bisa menggunakan titik)
+                  </p>
                 </div>
               </div>
             </div>
@@ -439,13 +659,16 @@ export default function TambahProfilDesa() {
                     Luas Wilayah (Ha)
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     name="statistik.luas"
                     value={formData.statistik.luas}
                     onChange={handleInputChange}
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="0.00"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Contoh: 125.50 atau 125,50
+                  </p>
                 </div>
 
                 <div>
@@ -466,13 +689,16 @@ export default function TambahProfilDesa() {
                     Luas Pertanian (Ha)
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     name="statistik.pertanian"
                     value={formData.statistik.pertanian}
                     onChange={handleInputChange}
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="0.00"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Contoh: 75.25 atau 75,25
+                  </p>
                 </div>
               </div>
             </div>
@@ -535,19 +761,150 @@ export default function TambahProfilDesa() {
                 Destinasi Wisata
               </h2>
 
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nama Wisata
+                    </label>
+                    <input
+                      type="text"
+                      value={tempWisata.nama}
+                      onChange={(e) =>
+                        handleWisataChange("nama", e.target.value)
+                      }
+                      placeholder="Nama destinasi wisata"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Gambar Wisata
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+                      {tempWisata.gambar ? (
+                        <div className="mb-3">
+                          <img
+                            src={tempWisata.gambar}
+                            alt="Preview"
+                            className="mx-auto h-32 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleWisataChange("gambar", "")}
+                            className="text-red-600 text-sm mt-1"
+                          >
+                            Hapus Gambar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <i className="fas fa-camera text-gray-400 text-2xl mb-2"></i>
+                          <p className="text-gray-600 text-sm">
+                            Upload gambar wisata
+                          </p>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleWisataImageUpload}
+                        className="hidden"
+                        id="wisata-image-upload"
+                      />
+                      <label
+                        htmlFor="wisata-image-upload"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all cursor-pointer inline-block text-sm"
+                      >
+                        {uploadingWisata === "wisata"
+                          ? "Uploading..."
+                          : "Pilih Gambar"}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Deskripsi Singkat
+                    </label>
+                    <textarea
+                      value={tempWisata.deskripsi}
+                      onChange={(e) =>
+                        handleWisataChange("deskripsi", e.target.value)
+                      }
+                      rows={3}
+                      placeholder="Deskripsi singkat tentang wisata ini"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleWisataAdd}
+                  className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-all font-semibold"
+                >
+                  Tambah Wisata
+                </button>
+
+                {/* Daftar Wisata yang sudah ditambahkan */}
+                <div className="space-y-4">
+                  {formData.wisata.map((wisata, index) => (
+                    <div
+                      key={index}
+                      className="border-2 border-gray-200 rounded-xl p-4"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-semibold text-lg">
+                            {wisata.nama}
+                          </h4>
+                          <p className="text-gray-600 mt-1">
+                            {wisata.deskripsi}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleWisataRemove(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                      {wisata.gambar && (
+                        <img
+                          src={wisata.gambar}
+                          alt={wisata.nama}
+                          className="h-48 w-full object-cover rounded-lg"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* BUMDes */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                <i className="fas fa-building text-primary mr-3"></i>
+                BUMDes (Badan Usaha Milik Desa)
+              </h2>
+
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <input
                     type="text"
-                    value={tempWisata}
-                    onChange={(e) => setTempWisata(e.target.value)}
-                    placeholder="Tambahkan destinasi wisata"
+                    value={tempBumdes}
+                    onChange={(e) => setTempBumdes(e.target.value)}
+                    placeholder="Tambahkan BUMDes"
                     className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() =>
-                      handleArrayAdd("wisata", tempWisata, setTempWisata)
+                      handleArrayAdd("bumdes", tempBumdes, setTempBumdes)
                     }
                     className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-all font-semibold"
                   >
@@ -556,15 +913,15 @@ export default function TambahProfilDesa() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {formData.wisata.map((wisata, index) => (
+                  {formData.bumdes.map((bumdes, index) => (
                     <div
                       key={index}
                       className="bg-gray-50 rounded-lg p-3 flex justify-between items-center"
                     >
-                      <span>{wisata}</span>
+                      <span>{bumdes}</span>
                       <button
                         type="button"
-                        onClick={() => handleArrayRemove("wisata", index)}
+                        onClick={() => handleArrayRemove("bumdes", index)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <i className="fas fa-times"></i>
@@ -624,6 +981,84 @@ export default function TambahProfilDesa() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Infrastruktur */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                <i className="fas fa-road text-primary mr-3"></i>
+                Infrastruktur
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Kondisi Jalan
+                  </label>
+                  <select
+                    name="infrastruktur.jalan"
+                    value={formData.infrastruktur.jalan}
+                    onChange={handleInputChange}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="Baik">Baik</option>
+                    <option value="Sedang">Sedang</option>
+                    <option value="Rusak">Rusak</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Akses Air Bersih
+                  </label>
+                  <select
+                    name="infrastruktur.air"
+                    value={formData.infrastruktur.air}
+                    onChange={handleInputChange}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="Tersedia">Tersedia</option>
+                    <option value="Terbatas">Terbatas</option>
+                    <option value="Tidak Tersedia">Tidak Tersedia</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Akses Internet
+                  </label>
+                  <select
+                    name="infrastruktur.internet"
+                    value={formData.infrastruktur.internet}
+                    onChange={handleInputChange}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="4G">4G</option>
+                    <option value="3G">3G</option>
+                    <option value="2G">2G</option>
+                    <option value="Tidak Ada">Tidak Ada</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fasilitas Kesehatan
+                  </label>
+                  <select
+                    name="infrastruktur.kesehatan"
+                    value={formData.infrastruktur.kesehatan}
+                    onChange={handleInputChange}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="Puskesmas Pembantu">
+                      Puskesmas Pembantu
+                    </option>
+                    <option value="Puskesmas">Puskesmas</option>
+                    <option value="Klinik">Klinik</option>
+                    <option value="Posyandu">Posyandu</option>
+                  </select>
                 </div>
               </div>
             </div>

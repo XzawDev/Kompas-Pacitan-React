@@ -84,7 +84,7 @@ export default function ProfilDesaPage() {
       <div className="min-h-screen bg-gray-50">
         <main className="container mx-auto px-4 py-6 max-w-7xl">
           {/* Page Header */}
-          <div className="text-center mb-8">
+          {/* <div className="text-center mb-8">
             <h1 className="text-2xl md:text-4xl font-bold text-dark mb-3">
               Profil Desa Kabupaten Pacitan
             </h1>
@@ -93,7 +93,7 @@ export default function ProfilDesaPage() {
               Temukan peluang investasi, wisata alam, dan produk unggulan setiap
               desa.
             </p>
-          </div>
+          </div> */}
 
           {/* Hero Section */}
           <div
@@ -111,11 +111,12 @@ export default function ProfilDesaPage() {
             <div className="relative z-10 h-full flex items-end p-6">
               <div className="w-full">
                 <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                  Keindahan dan Potensi Desa Pacitan
+                  Profil Desa Kabupaten Pacitan
                 </h1>
                 <p className="text-white text-base md:text-lg mb-4">
-                  Temukan keunikan setiap desa dengan kekayaan alam, budaya, dan
-                  peluang bisnis yang menanti untuk dieksplorasi
+                  Jelajahi kekayaan dan potensi {desaData.length} desa di
+                  Pacitan. Temukan peluang investasi, wisata alam, dan produk
+                  unggulan setiap desa.
                 </p>
                 <button
                   onClick={() =>
