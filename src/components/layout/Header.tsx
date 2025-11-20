@@ -129,14 +129,32 @@ const Header = () => {
                       Tambah Lokasi
                     </Link>
                     {user.role === "admin" && (
-                      <Link
-                        href="/dashboard/admin/approvals"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <i className="fas fa-shield-alt mr-2"></i>
-                        Admin Panel
-                      </Link>
+                      <div className="border-t border-gray-100">
+                        {/* <Link
+                          href="/dashboard/admin/approvals"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <i className="fas fa-shield-alt mr-2"></i>
+                          Persetujuan Lokasi
+                        </Link> */}
+                        <Link
+                          href="/dashboard/admin/tambah-investasi"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <i className="fas fa-plus mr-2"></i>
+                          Tambah Investasi
+                        </Link>
+                        <Link
+                          href="/dashboard/admin/tambah-desa"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <i className="fas fa-plus mr-2"></i>
+                          Tambah Desa
+                        </Link>
+                      </div>
                     )}
                     <button
                       onClick={handleSignOut}
