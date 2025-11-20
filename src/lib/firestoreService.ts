@@ -7,6 +7,7 @@ import {
   getDocs,
   getDoc,
   query,
+  setDoc,
   where,
   orderBy,
   Timestamp,
@@ -35,7 +36,8 @@ export const createUserProfile = async (
   }
 ) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    // Gunakan setDoc untuk membuat dokumen baru, bukan updateDoc
+    await setDoc(doc(db, "users", userId), {
       ...userData,
       role: userData.role || "user",
       createdAt: serverTimestamp(),
@@ -51,26 +53,21 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
     if (userDoc.exists()) {
-      return { uid: userId, ...userDoc.data() } as User;
+      const data = userDoc.data();
+      return {
+        uid: userId,
+        email: data.email,
+        displayName: data.username || data.email,
+        username: data.username,
+        role: data.role || "user",
+        photoURL: data.photoURL,
+        createdAt:
+          data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+      } as User;
     }
     return null;
   } catch (error) {
     console.error("Error getting user profile:", error);
-    throw error;
-  }
-};
-
-export const updateUserProfile = async (
-  userId: string,
-  data: Partial<User>
-) => {
-  try {
-    await updateDoc(doc(db, "users", userId), {
-      ...data,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error updating user profile:", error);
     throw error;
   }
 };

@@ -8,14 +8,15 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { User, AuthContextType } from "@/lib/types";
-import {
-  createUserProfile,
-  getUserProfile,
-  updateUserProfile,
-} from "@/lib/firestoreService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -32,6 +33,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Fungsi untuk membuat user profile di Firestore
+  const createUserProfile = async (
+    userId: string,
+    userData: {
+      email: string;
+      username: string;
+      role?: "user" | "admin";
+    }
+  ) => {
+    try {
+      // Gunakan setDoc untuk membuat dokumen baru
+      await setDoc(doc(db, "users", userId), {
+        ...userData,
+        uid: userId,
+        displayName: userData.username,
+        role: userData.role || "user",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      throw error;
+    }
+  };
+
+  // Fungsi untuk mendapatkan user profile
+  const getUserProfile = async (userId: string): Promise<User | null> => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        return {
+          uid: userId,
+          email: data.email,
+          displayName: data.displayName || data.username,
+          username: data.username,
+          role: data.role || "user",
+          photoURL: data.photoURL,
+          createdAt:
+            data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        } as User;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting user profile:", error);
+      throw error;
+    }
+  };
 
   const findUserByUsername = async (
     username: string
@@ -76,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setUser(userProfile);
     } catch (error: any) {
+      console.error("Login error:", error);
       throw new Error(error.message || "Terjadi kesalahan saat login");
     } finally {
       setLoading(false);
@@ -107,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         displayName: username,
       });
 
-      // Create user profile in Firestore
+      // Create user profile in Firestore menggunakan setDoc
       await createUserProfile(firebaseUser.uid, {
         email,
         username,
@@ -118,18 +169,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await setDoc(doc(db, "usernames", username.toLowerCase()), {
         email,
         userId: firebaseUser.uid,
+        createdAt: serverTimestamp(),
       });
 
       // Set user state
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        displayName: username,
-        username,
-        role: "user",
-        createdAt: new Date().toISOString(),
-      });
+      const newUserProfile = await getUserProfile(firebaseUser.uid);
+      setUser(newUserProfile);
     } catch (error: any) {
+      console.error("Registration error:", error);
+
+      // Hapus user dari Firebase Auth jika gagal
+      if (auth.currentUser) {
+        await auth.currentUser.delete();
+      }
+
       throw new Error(error.message || "Terjadi kesalahan saat registrasi");
     } finally {
       setLoading(false);
@@ -140,7 +193,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user) throw new Error("User tidak login");
 
     try {
-      await updateUserProfile(user.uid, data);
+      await updateDoc(doc(db, "users", user.uid), {
+        ...data,
+        updatedAt: serverTimestamp(),
+      });
       setUser((prev) => (prev ? { ...prev, ...data } : null));
     } catch (error: any) {
       throw new Error(error.message || "Terjadi kesalahan saat update profil");
@@ -177,16 +233,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               role: "user",
             });
 
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              displayName:
-                firebaseUser.displayName || firebaseUser.email!.split("@")[0],
-              username:
-                firebaseUser.displayName || firebaseUser.email!.split("@")[0],
-              role: "user",
-              createdAt: new Date().toISOString(),
-            });
+            const newUserProfile = await getUserProfile(firebaseUser.uid);
+            setUser(newUserProfile);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
