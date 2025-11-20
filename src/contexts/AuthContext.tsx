@@ -28,6 +28,26 @@ export const useAuth = () => {
   return context;
 };
 
+// Helper function to safely convert Firestore timestamp to string
+const convertFirestoreTimestamp = (timestamp: any): string => {
+  if (!timestamp) {
+    return new Date().toISOString();
+  }
+
+  // Jika sudah string, langsung return
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+
+  // Jika merupakan Firestore Timestamp object
+  if (timestamp.toDate && typeof timestamp.toDate === "function") {
+    return timestamp.toDate().toISOString();
+  }
+
+  // Fallback
+  return new Date().toISOString();
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -44,27 +64,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   ) => {
     try {
+      console.log("🔄 Creating user profile for:", userId);
       // Gunakan setDoc untuk membuat dokumen baru
       await setDoc(doc(db, "users", userId), {
-        ...userData,
         uid: userId,
+        email: userData.email,
         displayName: userData.username,
+        username: userData.username,
         role: userData.role || "user",
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp(), // Pastikan menggunakan serverTimestamp()
         updatedAt: serverTimestamp(),
       });
+      console.log("✅ User profile created successfully");
     } catch (error) {
-      console.error("Error creating user profile:", error);
+      console.error("❌ Error creating user profile:", error);
       throw error;
     }
   };
 
-  // Fungsi untuk mendapatkan user profile
+  // Fungsi untuk mendapatkan user profile - DIPERBAIKI
   const getUserProfile = async (userId: string): Promise<User | null> => {
     try {
       const userDoc = await getDoc(doc(db, "users", userId));
       if (userDoc.exists()) {
         const data = userDoc.data();
+        console.log("✅ User profile found:", userId, data);
+
+        // Gunakan helper function untuk convert timestamp dengan aman
+        const createdAt = convertFirestoreTimestamp(data.createdAt);
+
         return {
           uid: userId,
           email: data.email,
@@ -72,13 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           username: data.username,
           role: data.role || "user",
           photoURL: data.photoURL,
-          createdAt:
-            data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+          createdAt: createdAt,
         } as User;
       }
+      console.log("❌ User profile not found:", userId);
       return null;
     } catch (error) {
-      console.error("Error getting user profile:", error);
+      console.error("❌ Error getting user profile:", error);
       throw error;
     }
   };
@@ -110,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email = foundEmail;
       }
 
+      console.log("🔄 Attempting login for:", email);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -121,13 +150,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const userProfile = await getUserProfile(firebaseUser.uid);
 
       if (!userProfile) {
-        throw new Error("Profil user tidak ditemukan");
+        console.log("⚠️ User profile not found, creating new one...");
+        // Create profile if doesn't exist
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          username:
+            firebaseUser.displayName || firebaseUser.email!.split("@")[0],
+          role: "user",
+        });
+
+        const newProfile = await getUserProfile(firebaseUser.uid);
+        setUser(newProfile);
+      } else {
+        setUser(userProfile);
       }
 
-      setUser(userProfile);
+      console.log("✅ Login successful");
     } catch (error: any) {
-      console.error("Login error:", error);
-      throw new Error(error.message || "Terjadi kesalahan saat login");
+      console.error("❌ Login error:", error);
+      let errorMessage = "Terjadi kesalahan saat login";
+
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "User tidak ditemukan";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "Password salah";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Email tidak valid";
+      } else if (error.code === "auth/invalid-credential") {
+        errorMessage = "Kredensial tidak valid";
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -136,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signUp = async (email: string, password: string, username: string) => {
     try {
       setLoading(true);
+      console.log("🔄 Starting registration process...");
 
       // Check if username already exists
       const usernameDoc = await getDoc(
@@ -146,14 +202,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Create user in Firebase Auth
+      console.log("🔄 Creating Firebase Auth user...");
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
       const firebaseUser = userCredential.user;
+      console.log("✅ Firebase Auth user created:", firebaseUser.uid);
 
-      // Update profile with username
+      // Update profile with username in Firebase Auth
       await updateProfile(firebaseUser, {
         displayName: username,
       });
@@ -162,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await createUserProfile(firebaseUser.uid, {
         email,
         username,
-        role: "user", // Default role
+        role: "user",
       });
 
       // Store username-email mapping
@@ -174,16 +232,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Set user state
       const newUserProfile = await getUserProfile(firebaseUser.uid);
-      setUser(newUserProfile);
+      if (newUserProfile) {
+        setUser(newUserProfile);
+        console.log("✅ Registration completed successfully");
+      } else {
+        throw new Error("Gagal membuat profil user");
+      }
     } catch (error: any) {
-      console.error("Registration error:", error);
+      console.error("❌ Registration error:", error);
 
       // Hapus user dari Firebase Auth jika gagal
       if (auth.currentUser) {
-        await auth.currentUser.delete();
+        try {
+          await auth.currentUser.delete();
+          console.log("🗑️ Rollback: Deleted Firebase Auth user");
+        } catch (deleteError) {
+          console.error("Error deleting user during rollback:", deleteError);
+        }
       }
 
-      throw new Error(error.message || "Terjadi kesalahan saat registrasi");
+      let errorMessage = "Terjadi kesalahan saat registrasi";
+
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Email sudah digunakan";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password terlalu lemah";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Email tidak valid";
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -193,12 +273,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user) throw new Error("User tidak login");
 
     try {
+      // Pastikan dokumen user ada sebelum update
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) {
+        // Buat dokumen jika belum ada
+        await createUserProfile(user.uid, {
+          email: user.email,
+          username: user.username || user.displayName,
+          role: user.role,
+        });
+      }
+
       await updateDoc(doc(db, "users", user.uid), {
         ...data,
         updatedAt: serverTimestamp(),
       });
-      setUser((prev) => (prev ? { ...prev, ...data } : null));
+
+      // Update user state dengan data baru
+      const updatedProfile = await getUserProfile(user.uid);
+      setUser(updatedProfile);
     } catch (error: any) {
+      console.error("Error updating user profile:", error);
       throw new Error(error.message || "Terjadi kesalahan saat update profil");
     }
   };
@@ -207,7 +302,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await firebaseSignOut(auth);
       setUser(null);
+      console.log("✅ Logout successful");
     } catch (error: any) {
+      console.error("❌ Logout error:", error);
       throw new Error(error.message || "Terjadi kesalahan saat logout");
     }
   };
@@ -221,10 +318,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          console.log("🔄 Auth state changed, user:", firebaseUser.uid);
           const userProfile = await getUserProfile(firebaseUser.uid);
           if (userProfile) {
             setUser(userProfile);
           } else {
+            console.log("🔄 Creating profile for existing user...");
             // Create profile if doesn't exist (for existing users)
             await createUserProfile(firebaseUser.uid, {
               email: firebaseUser.email!,
@@ -237,9 +336,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             setUser(newUserProfile);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("❌ Error fetching user data:", error);
         }
       } else {
+        console.log("🔄 No user logged in");
         setUser(null);
       }
       setLoading(false);

@@ -49,6 +49,7 @@ export const createUserProfile = async (
   }
 };
 
+// Kemudian perbaiki semua fungsi yang menggunakan toDate():
 export const getUserProfile = async (userId: string): Promise<User | null> => {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
@@ -57,12 +58,11 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
       return {
         uid: userId,
         email: data.email,
-        displayName: data.username || data.email,
+        displayName: data.displayName || data.username,
         username: data.username,
         role: data.role || "user",
         photoURL: data.photoURL,
-        createdAt:
-          data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        createdAt: convertFirestoreTimestamp(data.createdAt),
       } as User;
     }
     return null;
@@ -71,7 +71,6 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
     throw error;
   }
 };
-
 // ==================== LOCATION OPERATIONS ====================
 
 export const addLocation = async (
@@ -652,4 +651,25 @@ export const deleteDesa = async (desaId: string) => {
     console.error("Error deleting desa:", error);
     throw error;
   }
+};
+
+// Tambahkan di bagian atas firestoreService.ts
+// Helper function to safely convert Firestore timestamp to string
+const convertFirestoreTimestamp = (timestamp: any): string => {
+  if (!timestamp) {
+    return new Date().toISOString();
+  }
+
+  // Jika sudah string, langsung return
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+
+  // Jika merupakan Firestore Timestamp object
+  if (timestamp.toDate && typeof timestamp.toDate === "function") {
+    return timestamp.toDate().toISOString();
+  }
+
+  // Fallback
+  return new Date().toISOString();
 };
