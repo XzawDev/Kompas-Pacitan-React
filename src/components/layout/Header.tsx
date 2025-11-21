@@ -137,7 +137,7 @@ const Header = () => {
                         >
                           <i className="fas fa-shield-alt mr-2"></i>
                           Persetujuan Lokasi
-                        </Link> */}
+                        </Link>
                         <Link
                           href="/dashboard/admin/tambah-investasi"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -153,7 +153,7 @@ const Header = () => {
                         >
                           <i className="fas fa-plus mr-2"></i>
                           Tambah Desa
-                        </Link>
+                        </Link> */}
                       </div>
                     )}
                     <button
