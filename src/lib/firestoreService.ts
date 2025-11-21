@@ -715,3 +715,59 @@ export const getDesaWithAIRecommendations = async (
     throw error;
   }
 };
+
+// Tambahkan di bagian yang sesuai di firestoreService.ts
+
+// ==================== DELETE OPERATIONS ====================
+
+export const deleteLocation = async (locationId: string) => {
+  try {
+    await deleteDoc(doc(db, "locations", locationId));
+  } catch (error) {
+    console.error("Error deleting location:", error);
+    throw error;
+  }
+};
+
+export const deleteInvestment = async (investmentId: string) => {
+  try {
+    await deleteDoc(doc(db, "investments", investmentId));
+  } catch (error) {
+    console.error("Error deleting investment:", error);
+    throw error;
+  }
+};
+
+// Fungsi deleteDesa sudah ada di file yang Anda berikan
+
+// Tambahkan fungsi-fungsi update berikut di firestoreService.ts
+
+export const updateLocation = async (
+  locationId: string,
+  locationData: Partial<Location>
+) => {
+  try {
+    await updateDoc(doc(db, "locations", locationId), {
+      ...locationData,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating location:", error);
+    throw error;
+  }
+};
+
+export const updateInvestment = async (
+  investmentId: string,
+  investmentData: Partial<InvestmentOpportunity>
+) => {
+  try {
+    await updateDoc(doc(db, "investments", investmentId), {
+      ...investmentData,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating investment:", error);
+    throw error;
+  }
+};

@@ -1,211 +1,219 @@
+// src/app/dashboard/tambah-lokasi/page.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { addLocation, uploadToVercelBlob } from "@/lib/firestoreService";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import {
+  addLocation,
+  updateLocation,
+  getLocationById,
+  uploadToVercelBlob,
+} from "@/lib/firestoreService";
 import { Location } from "@/lib/types";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
-// Perbaiki tipe form data untuk menghilangkan field yang tidak diinginkan
-type LocationFormData = Omit<
-  Location,
-  | "id"
-  | "createdAt"
-  | "updatedAt"
-  | "approvedBy"
-  | "approvedAt"
-  | "rejectionReason"
-  | "status"
-> & {
-  potential?: "Sangat Tinggi" | "Tinggi" | "Sedang" | "Rendah";
-  feasibility?: number;
-};
-
-export default function TambahLokasi() {
+// Komponen terpisah yang menggunakan useSearchParams
+function TambahLokasiContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [formData, setFormData] = useState<LocationFormData>({
+  const [isEdit, setIsEdit] = useState(false);
+
+  const [formData, setFormData] = useState({
     title: "",
-    type: "Pariwisata",
+    type: "Pariwisata" as Location["type"],
     kecamatan: "",
     desa: "",
     description: "",
-    alamat: "",
+    image: "",
+    potential: "Sedang" as Location["potential"],
+    feasibility: 50,
     kontak: "",
     fasilitas: [] as string[],
-    coords: { lat: 0, lng: 0 },
-    image: "",
-    createdBy: "",
-    // Berikan nilai default untuk field yang dihapus dari UI
-    potential: "Sedang",
-    feasibility: 50,
+    alamat: "",
+    coords: {
+      lat: -8.2065,
+      lng: 111.046,
+    },
   });
 
-  const [coordInputs, setCoordInputs] = useState({
-    lat: "",
-    lng: "",
-  });
+  const [tempFasilitas, setTempFasilitas] = useState("");
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+      return;
+    }
 
-  const handleChange = (
+    if (editId) {
+      loadLocationData(editId);
+    }
+  }, [user, authLoading, router, editId]);
+
+  const loadLocationData = async (locationId: string) => {
+    try {
+      setLoading(true);
+      const locationData = await getLocationById(locationId);
+      if (locationData) {
+        setFormData({
+          title: locationData.title,
+          type: locationData.type,
+          kecamatan: locationData.kecamatan,
+          desa: locationData.desa,
+          description: locationData.description,
+          image: locationData.image,
+          potential: locationData.potential,
+          feasibility: locationData.feasibility,
+          kontak: locationData.kontak,
+          fasilitas: locationData.fasilitas || [],
+          alamat: locationData.alamat || "",
+          coords: locationData.coords,
+        });
+        setIsEdit(true);
+      }
+    } catch (error) {
+      console.error("Error loading location data:", error);
+      alert("Gagal memuat data lokasi");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Harap pilih file gambar yang valid");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Ukuran file maksimal 5MB");
-        return;
-      }
-
-      setSelectedFile(file);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCoordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const validCoordRegex = /^-?\d*\.?\d*$/;
-
-    if (value === "" || validCoordRegex.test(value)) {
-      setCoordInputs((prev) => ({
+    if (name.startsWith("coords.")) {
+      const coordField = name.split(".")[1];
+      setFormData((prev) => ({
+        ...prev,
+        coords: {
+          ...prev.coords,
+          [coordField]: parseFloat(value) || 0,
+        },
+      }));
+    } else if (name === "feasibility") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: parseInt(value) || 0,
+      }));
+    } else {
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
-
-      const numValue = value === "" ? 0 : parseFloat(value);
-      if (!isNaN(numValue)) {
-        setFormData((prev) => ({
-          ...prev,
-          coords: {
-            ...prev.coords,
-            [name]: numValue,
-          },
-        }));
-      }
     }
   };
 
-  const handleFasilitasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value, checked } = e.target;
-    setFormData((prev) => {
-      if (checked) {
-        return { ...prev, fasilitas: [...prev.fasilitas, value] };
-      } else {
-        return {
-          ...prev,
-          fasilitas: prev.fasilitas.filter((item) => item !== value),
-        };
-      }
-    });
+  const handleFasilitasAdd = () => {
+    if (tempFasilitas.trim() === "") return;
+
+    setFormData((prev) => ({
+      ...prev,
+      fasilitas: [...prev.fasilitas, tempFasilitas.trim()],
+    }));
+    setTempFasilitas("");
   };
 
-  const validateCoords = () => {
-    const { lat, lng } = formData.coords;
-
-    if (isNaN(lat) || isNaN(lng)) {
-      alert("Koordinat harus berupa angka yang valid");
-      return false;
-    }
-
-    if (lat < -90 || lat > 90) {
-      alert("Latitude harus antara -90 dan 90 derajat");
-      return false;
-    }
-
-    if (lng < -180 || lng > 180) {
-      alert("Longitude harus antara -180 dan 180 derajat");
-      return false;
-    }
-
-    return true;
+  const handleFasilitasRemove = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      fasilitas: prev.fasilitas.filter((_, i) => i !== index),
+    }));
   };
 
-  const uploadImageToStorage = async (file: File): Promise<string> => {
-    setUploading(true);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("File harus berupa gambar");
+      return;
+    }
+
     try {
+      setLoading(true);
       const imageUrl = await uploadToVercelBlob(file);
-      return imageUrl;
+      setFormData((prev) => ({
+        ...prev,
+        image: imageUrl,
+      }));
     } catch (error) {
       console.error("Error uploading image:", error);
-      throw new Error("Gagal mengupload gambar");
+      alert("Gagal mengupload gambar");
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert("Anda harus login untuk menambahkan lokasi");
+
+    if (
+      !formData.title ||
+      !formData.kecamatan ||
+      !formData.desa ||
+      !formData.description
+    ) {
+      alert("Judul, Kecamatan, Desa, dan Deskripsi harus diisi");
       return;
     }
 
-    if (!validateCoords()) {
-      return;
-    }
-
-    setLoading(true);
     try {
-      let imageUrl = formData.image;
+      setLoading(true);
 
-      if (selectedFile) {
-        imageUrl = await uploadImageToStorage(selectedFile);
-      }
-
-      // Siapkan data untuk dikirim, termasuk field yang memiliki nilai default
       const locationData = {
         ...formData,
-        image: imageUrl,
-        createdBy: user.uid,
-        coords: formData.coords || { lat: 0, lng: 0 },
-        fasilitas: formData.fasilitas || [],
-        // Pastikan field yang dihapus dari UI tetap memiliki nilai
-        potential: formData.potential || "Sedang",
-        feasibility: formData.feasibility || 50,
+        createdBy: user?.uid || "",
+        status: (user?.role === "admin" ? "approved" : "pending") as
+          | "approved"
+          | "pending",
       };
 
-      const isAdmin = user.role === "admin";
-      await addLocation(locationData, isAdmin);
-
-      if (isAdmin) {
-        alert("Lokasi berhasil ditambahkan!");
+      if (isEdit && editId) {
+        // Untuk update, hapus status karena kita tidak ingin mengubah status saat edit
+        const { status, ...updateData } = locationData;
+        await updateLocation(editId, updateData);
       } else {
-        alert("Lokasi berhasil diajukan! Menunggu persetujuan admin.");
+        await addLocation(locationData, user?.role === "admin");
       }
-      router.push("/dashboard");
+
+      router.push("/dashboard/admin/manajemen-lokasi");
     } catch (error) {
-      console.error("Error adding location:", error);
-      alert("Gagal menambahkan lokasi");
+      console.error("Error saving location:", error);
+      alert(`Gagal ${isEdit ? "mengupdate" : "menambahkan"} lokasi`);
     } finally {
       setLoading(false);
     }
   };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const kecamatanList = [
+    "Pacitan",
+    "Kebonagung",
+    "Arjosari",
+    "Nawangan",
+    "Bandar",
+    "Tegalombo",
+    "Tulakan",
+    "Ngadirojo",
+    "Sudimoro",
+    "Pringkuku",
+    "Punung",
+    "Donorojo",
+  ];
 
   if (authLoading) {
     return (
@@ -216,15 +224,29 @@ export default function TambahLokasi() {
   }
 
   if (!user) {
-    router.push("/login");
     return null;
   }
 
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-gray-50 pt-16">
-        <div className="container mx-auto px-4 py-8">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <DashboardHeader onToggleSidebar={toggleSidebar} />
+
+      <div className="flex flex-1 overflow-hidden">
+        <DashboardSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               {/* Header */}
@@ -232,60 +254,47 @@ export default function TambahLokasi() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
-                      Tambah Lokasi Baru
+                      {isEdit ? "Edit Lokasi" : "Tambah Lokasi Baru"}
                     </h1>
                     <p className="text-blue-100">
-                      Isi form berikut untuk menambahkan lokasi potensial baru
+                      {isEdit
+                        ? "Perbarui data lokasi yang sudah ada"
+                        : "Tambahkan data lokasi potensial baru"}
                     </p>
                   </div>
-                  {user.role === "admin" && (
-                    <span className="mt-4 md:mt-0 bg-green-600 text-white text-sm font-medium px-3 py-1 rounded-full inline-flex items-center">
-                      <i className="fas fa-shield-alt mr-2"></i>
-                      Mode Admin - Langsung Disetujui
-                    </span>
-                  )}
+                  <button
+                    onClick={() =>
+                      router.push("/dashboard/admin/manajemen-lokasi")
+                    }
+                    className="mt-4 md:mt-0 bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                  >
+                    <i className="fas fa-arrow-left mr-2"></i>
+                    Kembali
+                  </button>
                 </div>
               </div>
 
-              {/* Admin Notice */}
-              {user.role === "admin" && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mx-6 mt-6 rounded-lg">
-                  <div className="flex items-start">
-                    <i className="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
-                    <div>
-                      <h3 className="font-semibold text-blue-800 text-sm">
-                        Mode Admin
-                      </h3>
-                      <p className="text-blue-600 text-sm mt-1">
-                        Lokasi yang Anda tambahkan akan langsung disetujui dan
-                        muncul di peta tanpa perlu menunggu persetujuan.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-8">
-                {/* Informasi Dasar */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                    Informasi Dasar
-                  </h2>
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* Data Umum */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Data Umum
+                  </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nama Lokasi *
+                        Judul Lokasi *
                       </label>
                       <input
                         type="text"
                         name="title"
                         value={formData.title}
-                        onChange={handleChange}
+                        onChange={handleInputChange}
                         required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Masukkan nama lokasi"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Nama lokasi"
                       />
                     </div>
 
@@ -296,9 +305,9 @@ export default function TambahLokasi() {
                       <select
                         name="type"
                         value={formData.type}
-                        onChange={handleChange}
+                        onChange={handleInputChange}
                         required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="Pariwisata">Pariwisata</option>
                         <option value="Pertanian">Pertanian</option>
@@ -310,20 +319,25 @@ export default function TambahLokasi() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Kecamatan *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         name="kecamatan"
                         value={formData.kecamatan}
-                        onChange={handleChange}
+                        onChange={handleInputChange}
                         required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Masukkan nama kecamatan"
-                      />
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">Pilih Kecamatan</option>
+                        {kecamatanList.map((kec) => (
+                          <option key={kec} value={kec}>
+                            {kec}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -334,51 +348,182 @@ export default function TambahLokasi() {
                         type="text"
                         name="desa"
                         value={formData.desa}
-                        onChange={handleChange}
+                        onChange={handleInputChange}
                         required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Masukkan nama desa"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Nama desa"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Alamat Lengkap
+                    </label>
+                    <input
+                      type="text"
+                      name="alamat"
+                      value={formData.alamat}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Alamat detail lokasi"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Deskripsi *
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      required
+                      rows={4}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Deskripsikan lokasi secara detail"
+                    />
+                  </div>
+                </div>
+
+                {/* Gambar */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Gambar Lokasi
+                  </h3>
+
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    {formData.image ? (
+                      <div className="mb-4">
+                        <img
+                          src={formData.image}
+                          alt="Preview"
+                          className="mx-auto h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({ ...prev, image: "" }))
+                          }
+                          className="text-red-600 text-sm mt-2"
+                        >
+                          Hapus Gambar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <i className="fas fa-cloud-upload-alt text-gray-400 text-4xl mb-3"></i>
+                        <p className="text-gray-600 mb-2">
+                          Upload gambar lokasi
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer inline-block"
+                    >
+                      {loading ? "Uploading..." : "Pilih Gambar"}
+                    </label>
+                  </div>
+                </div>
+
+                {/* Potensi & Kelayakan */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Analisis Potensi
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tingkat Potensi
+                      </label>
+                      <select
+                        name="potential"
+                        value={formData.potential}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="Sangat Tinggi">Sangat Tinggi</option>
+                        <option value="Tinggi">Tinggi</option>
+                        <option value="Sedang">Sedang</option>
+                        <option value="Rendah">Rendah</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tingkat Kelayakan: {formData.feasibility}%
+                      </label>
+                      <input
+                        type="range"
+                        name="feasibility"
+                        min="0"
+                        max="100"
+                        value={formData.feasibility}
+                        onChange={handleInputChange}
+                        className="w-full"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Deskripsi */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                    Deskripsi & Kontak
-                  </h2>
+                {/* Fasilitas */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Fasilitas
+                  </h3>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Deskripsi Lokasi *
-                    </label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      required
-                      rows={4}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                      placeholder="Jelaskan secara detail tentang lokasi ini..."
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={tempFasilitas}
+                      onChange={(e) => setTempFasilitas(e.target.value)}
+                      placeholder="Tambah fasilitas"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <button
+                      type="button"
+                      onClick={handleFasilitasAdd}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Tambah
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Alamat Lengkap
-                      </label>
-                      <input
-                        type="text"
-                        name="alamat"
-                        value={formData.alamat}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Alamat detail lokasi"
-                      />
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.fasilitas.map((fasilitas, index) => (
+                      <span
+                        key={index}
+                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center"
+                      >
+                        {fasilitas}
+                        <button
+                          type="button"
+                          onClick={() => handleFasilitasRemove(index)}
+                          className="ml-2 text-red-600 hover:text-red-800"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
 
+                {/* Kontak & Koordinat */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Kontak & Koordinat
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Kontak
@@ -387,217 +532,69 @@ export default function TambahLokasi() {
                         type="text"
                         name="kontak"
                         value={formData.kontak}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Nomor telepon atau kontak lainnya"
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Nomor telepon/email"
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Fasilitas */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                    Fasilitas
-                  </h2>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {[
-                      "Parkir",
-                      "Toilet",
-                      "Warung Makan",
-                      "Mushola",
-                      "Area Bermain",
-                      "Penginapan",
-                      "WiFi",
-                      "Pemandu Wisata",
-                      "Spot Foto",
-                    ].map((fasilitas) => (
-                      <label
-                        key={fasilitas}
-                        className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          value={fasilitas}
-                          checked={formData.fasilitas.includes(fasilitas)}
-                          onChange={handleFasilitasChange}
-                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {fasilitas}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Koordinat */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                    Koordinat Lokasi
-                  </h2>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Latitude *
+                        Latitude
                       </label>
                       <input
-                        type="text"
-                        name="lat"
-                        value={coordInputs.lat}
-                        onChange={handleCoordChange}
-                        placeholder="Contoh: -8.2068"
-                        required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        type="number"
+                        step="any"
+                        name="coords.lat"
+                        value={formData.coords.lat}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                      <p className="text-xs text-gray-500 mt-2">
-                        <i className="fas fa-info-circle mr-1"></i>
-                        Gunakan titik (.) untuk desimal
-                      </p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Longitude *
+                        Longitude
                       </label>
                       <input
-                        type="text"
-                        name="lng"
-                        value={coordInputs.lng}
-                        onChange={handleCoordChange}
-                        placeholder="Contoh: 111.0799"
-                        required
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        <i className="fas fa-info-circle mr-1"></i>
-                        Gunakan titik (.) untuk desimal
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gambar */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                    Gambar Lokasi
-                  </h2>
-
-                  <div className="space-y-4">
-                    {/* Upload File */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Upload Gambar
-                      </label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="hidden"
-                          id="file-upload"
-                        />
-                        <label
-                          htmlFor="file-upload"
-                          className="cursor-pointer flex flex-col items-center"
-                        >
-                          <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <span className="text-blue-600 font-semibold">
-                              Klik untuk upload
-                            </span>{" "}
-                            atau drag and drop
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            PNG, JPG, JPEG (Maks. 5MB)
-                          </p>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Preview Gambar */}
-                    {(imagePreview || formData.image) && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                          Preview Gambar
-                        </label>
-                        <div className="flex flex-wrap gap-4">
-                          {imagePreview && (
-                            <div className="relative">
-                              <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="w-32 h-32 object-cover rounded-lg border"
-                              />
-                            </div>
-                          )}
-                          {formData.image && !imagePreview && (
-                            <div className="relative">
-                              <img
-                                src={formData.image}
-                                alt="Current"
-                                className="w-32 h-32 object-cover rounded-lg border"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* URL Gambar (Alternatif) */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Atau Masukkan URL Gambar
-                      </label>
-                      <input
-                        type="url"
-                        name="image"
-                        value={formData.image}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="https://example.com/image.jpg"
+                        type="number"
+                        step="any"
+                        name="coords.lng"
+                        value={formData.coords.lng}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t">
+                {/* Submit Button */}
+                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
                   <button
                     type="button"
-                    onClick={() => router.back()}
-                    className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center justify-center"
+                    onClick={() =>
+                      router.push("/dashboard/admin/manajemen-lokasi")
+                    }
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    <i className="fas fa-arrow-left mr-2"></i>
-                    Kembali
+                    Batal
                   </button>
                   <button
                     type="submit"
-                    disabled={loading || uploading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                    disabled={loading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {uploading ? (
+                    {loading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Mengupload...
-                      </>
-                    ) : loading ? (
-                      user.role === "admin" ? (
-                        "Menambahkan..."
-                      ) : (
-                        "Mengajukan..."
-                      )
-                    ) : user.role === "admin" ? (
-                      <>
-                        <i className="fas fa-plus mr-2"></i>
-                        Tambah Lokasi
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Menyimpan...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-paper-plane mr-2"></i>
-                        Ajukan Lokasi
+                        <i className="fas fa-save mr-2"></i>
+                        {isEdit ? "Update Lokasi" : "Simpan Lokasi"}
                       </>
                     )}
                   </button>
@@ -605,9 +602,23 @@ export default function TambahLokasi() {
               </form>
             </div>
           </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// Komponen utama dengan Suspense boundary
+export default function TambahLokasi() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </main>
-      <Footer />
-    </>
+      }
+    >
+      <TambahLokasiContent />
+    </Suspense>
   );
 }

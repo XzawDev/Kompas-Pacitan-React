@@ -81,7 +81,7 @@ const Header = () => {
             {user ? (
               <div className="relative">
                 <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  onClick={() => router.push("/dashboard")}
                   className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 rounded-xl px-3 py-2 transition"
                 >
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -212,6 +212,27 @@ const Header = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Dashboard
+                  </Link>
+                  <Link
+                    href="/dashboard/admin/tambah-investasi"
+                    className="text-gray-600 pl-3 text-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Tambah Investasi
+                  </Link>
+                  <Link
+                    href="/dashboard/admin/tambah-lokasi"
+                    className="text-gray-600 pl-3 text-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Tambah Lokasi
+                  </Link>
+                  <Link
+                    href="/dashboard/admin/tambah-desa"
+                    className="text-gray-600 pl-3 text-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Tambah Desa
                   </Link>
                 </div>
                 <button

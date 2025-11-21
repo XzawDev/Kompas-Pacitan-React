@@ -148,10 +148,10 @@ const Footer = () => {
           <div>
             <h3 className="text-base font-semibold mb-4">Kontak</h3>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex items-start">
+              {/* <li className="flex items-start">
                 <i className="fas fa-map-marker-alt mt-0.5 mr-3 text-primary text-xs"></i>
                 <span>Jl. Diponegoro No. 1, Pacitan, Jawa Timur</span>
-              </li>
+              </li> */}
               <li className="flex items-center">
                 <i className="fas fa-phone mr-3 text-primary text-xs"></i>
                 <span>(0357) 123456</span>

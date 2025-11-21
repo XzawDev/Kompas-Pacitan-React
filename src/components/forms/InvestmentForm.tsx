@@ -1,22 +1,27 @@
+// src/components/forms/InvestmentForm.tsx
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { addInvestment } from "@/lib/firestoreService";
-import { InvestmentFormData, UploadState } from "@/lib/types";
+import {
+  addInvestment,
+  updateInvestment,
+  getInvestmentById,
+  uploadToVercelBlob,
+} from "@/lib/firestoreService";
+import { InvestmentFormData } from "@/lib/types";
 
-const InvestmentForm = () => {
-  const router = useRouter();
+interface InvestmentFormProps {
+  editId?: string | null;
+}
+
+export default function InvestmentForm({ editId }: InvestmentFormProps) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const [uploadState, setUploadState] = useState<UploadState>({
-    mainImage: null,
-    additionalImages: [],
-    uploading: false,
-    uploadProgress: 0,
-  });
+  const [loading, setLoading] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
 
   const [formData, setFormData] = useState<InvestmentFormData>({
     title: "",
@@ -30,7 +35,7 @@ const InvestmentForm = () => {
     location: "",
     duration: "",
     kecamatan: "",
-    sektor: "",
+    sektor: "Pariwisata",
     potentialProfit: "",
     aiRecommendation: "",
     detail: {
@@ -45,477 +50,342 @@ const InvestmentForm = () => {
     },
   });
 
-  const mainImageInputRef = useRef<HTMLInputElement>(null);
-  const additionalImagesInputRef = useRef<HTMLInputElement>(null);
+  const [tempTag, setTempTag] = useState("");
 
-  // Fungsi untuk upload gambar ke Vercel Blob
-  const uploadToBlob = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch(`/api/upload?filename=${file.name}`, {
-      method: "POST",
-      body: file,
-    });
-
-    if (!response.ok) {
-      throw new Error("Upload failed");
+  useEffect(() => {
+    if (editId) {
+      loadInvestmentData(editId);
     }
+  }, [editId]);
 
-    const blob = await response.json();
-    return blob.url;
+  const loadInvestmentData = async (investmentId: string) => {
+    try {
+      setLoading(true);
+      const investmentData = await getInvestmentById(investmentId);
+      if (investmentData) {
+        setFormData({
+          title: investmentData.title,
+          description: investmentData.description,
+          image: investmentData.image,
+          images: investmentData.images || [],
+          estimatedCapital: investmentData.estimatedCapital,
+          roi: investmentData.roi,
+          tags: investmentData.tags || [],
+          feasibility: investmentData.feasibility,
+          location: investmentData.location,
+          duration: investmentData.duration,
+          kecamatan: investmentData.kecamatan || "",
+          sektor: investmentData.sektor || "Pariwisata",
+          potentialProfit: investmentData.potentialProfit || "",
+          aiRecommendation: investmentData.aiRecommendation || "",
+          detail: investmentData.detail || {
+            fullDescription: "",
+            contact: "",
+            aiAnalysis: {
+              feasibility: "",
+              estimatedROI: "",
+              risk: "",
+              opportunity: "",
+            },
+          },
+        });
+        setIsEdit(true);
+      }
+    } catch (error) {
+      console.error("Error loading investment data:", error);
+      alert("Gagal memuat data investasi");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle upload gambar utama
-  const handleMainImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+
+    if (name.startsWith("detail.")) {
+      const detailField = name.split(".")[1];
+      setFormData((prev) => ({
+        ...prev,
+        detail: {
+          ...prev.detail,
+          [detailField]: value,
+        },
+      }));
+    } else if (name.startsWith("detail.aiAnalysis.")) {
+      const analysisField = name.split(".")[2];
+      setFormData((prev) => ({
+        ...prev,
+        detail: {
+          ...prev.detail,
+          aiAnalysis: {
+            ...prev.detail.aiAnalysis,
+            [analysisField]: value,
+          },
+        },
+      }));
+    } else if (name === "feasibility") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: parseInt(value) || 0,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const handleTagAdd = () => {
+    if (tempTag.trim() === "") return;
+
+    setFormData((prev) => ({
+      ...prev,
+      tags: [...prev.tags, tempTag.trim()],
+    }));
+    setTempTag("");
+  };
+
+  const handleTagRemove = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi file type
-    if (!file.type.startsWith("image/")) {
-      alert("File harus berupa gambar");
-      return;
-    }
-
-    // Validasi file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Ukuran file maksimal 5MB");
-      return;
-    }
-
-    setUploadState((prev) => ({ ...prev, uploading: true, uploadProgress: 0 }));
-
     try {
-      const imageUrl = await uploadToBlob(file);
-      setFormData((prev) => ({ ...prev, image: imageUrl }));
-      setUploadState((prev) => ({ ...prev, mainImage: file }));
-
-      // Simulasi progress (optional)
-      for (let i = 0; i <= 100; i += 10) {
-        setTimeout(() => {
-          setUploadState((prev) => ({ ...prev, uploadProgress: i }));
-        }, i * 20);
-      }
-    } catch (error) {
-      console.error("Error uploading main image:", error);
-      alert("Gagal mengupload gambar utama");
-    } finally {
-      setUploadState((prev) => ({
-        ...prev,
-        uploading: false,
-        uploadProgress: 0,
-      }));
-    }
-  };
-
-  // Handle upload gambar tambahan
-  const handleAdditionalImagesUpload = async (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Validasi file type dan size
-    const validFiles = files.filter((file) => {
-      if (!file.type.startsWith("image/")) {
-        alert(`File ${file.name} harus berupa gambar`);
-        return false;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`File ${file.name} terlalu besar (maksimal 5MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    setUploadState((prev) => ({ ...prev, uploading: true }));
-
-    try {
-      const uploadPromises = validFiles.map((file) => uploadToBlob(file));
-      const imageUrls = await Promise.all(uploadPromises);
-
+      setLoading(true);
+      const imageUrl = await uploadToVercelBlob(file);
       setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...imageUrls],
-      }));
-      setUploadState((prev) => ({
-        ...prev,
-        additionalImages: [...prev.additionalImages, ...validFiles],
+        image: imageUrl,
       }));
     } catch (error) {
-      console.error("Error uploading additional images:", error);
-      alert("Gagal mengupload gambar tambahan");
+      console.error("Error uploading image:", error);
+      alert("Gagal mengupload gambar");
     } finally {
-      setUploadState((prev) => ({ ...prev, uploading: false }));
+      setLoading(false);
     }
-  };
-
-  // Hapus gambar utama
-  const removeMainImage = () => {
-    setFormData((prev) => ({ ...prev, image: "" }));
-    setUploadState((prev) => ({ ...prev, mainImage: null }));
-    if (mainImageInputRef.current) {
-      mainImageInputRef.current.value = "";
-    }
-  };
-
-  // Hapus gambar tambahan
-  const removeAdditionalImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-    setUploadState((prev) => ({
-      ...prev,
-      additionalImages: prev.additionalImages.filter((_, i) => i !== index),
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert("Anda harus login terlebih dahulu");
-      return;
-    }
 
-    // Validasi required fields
-    if (!formData.title || !formData.description || !formData.image) {
-      alert("Judul, deskripsi, dan gambar utama harus diisi");
+    if (!formData.title || !formData.description || !formData.location) {
+      alert("Judul, Deskripsi, dan Lokasi harus diisi");
       return;
     }
 
     try {
       setLoading(true);
 
-      // Siapkan data untuk Firestore
       const investmentData = {
         ...formData,
+        createdBy: user?.uid || "",
+        status: "approved" as "approved", // Type assertion
         progress: 0,
-        createdBy: user.uid,
-        tags: formData.tags.length > 0 ? formData.tags : [formData.sektor],
-        // Jika potentialProfit tidak diisi, gunakan ROI
-        potentialProfit: formData.potentialProfit || formData.roi,
-        // Generate AI recommendation berdasarkan feasibility
-        aiRecommendation:
-          formData.aiRecommendation ||
-          `Tingkat kelayakan: ${formData.feasibility}% - ${
-            formData.feasibility >= 80
-              ? "Sangat layak untuk investasi"
-              : formData.feasibility >= 60
-              ? "Cukup layak untuk investasi"
-              : "Perlu pertimbangan lebih lanjut"
-          }`,
-        detail: {
-          ...formData.detail,
-          aiAnalysis: {
-            feasibility: `${formData.feasibility}% ${
-              formData.feasibility >= 80
-                ? "(Sangat Layak)"
-                : formData.feasibility >= 60
-                ? "(Cukup Layak)"
-                : "(Perlu Evaluasi)"
-            }`,
-            estimatedROI: formData.duration || "3-5 Tahun",
-            risk:
-              formData.detail.aiAnalysis.risk ||
-              "Risiko sedang - perlu analisis lebih lanjut",
-            opportunity:
-              formData.detail.aiAnalysis.opportunity ||
-              "Potensi pengembangan yang baik di masa depan",
-          },
-        },
       };
 
-      await addInvestment(investmentData, user.role === "admin");
+      if (isEdit && editId) {
+        // Untuk update, hapus status karena kita tidak ingin mengubah status saat edit
+        const { status, ...updateData } = investmentData;
+        await updateInvestment(editId, updateData);
+      } else {
+        await addInvestment(investmentData, true);
+      }
 
-      alert("Investasi berhasil ditambahkan dan menunggu persetujuan admin");
-      router.push("/peluang-investasi");
+      router.push("/dashboard/admin/manajemen-investasi");
     } catch (error) {
-      console.error("Error adding investment:", error);
-      alert("Gagal menambahkan investasi");
+      console.error("Error saving investment:", error);
+      alert(`Gagal ${isEdit ? "mengupdate" : "menambahkan"} investasi`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTagAdd = (tag: string) => {
-    if (tag && !formData.tags.includes(tag)) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, tag],
-      }));
-    }
-  };
+  const kecamatanList = [
+    "Pacitan",
+    "Kebonagung",
+    "Arjosari",
+    "Nawangan",
+    "Bandar",
+    "Tegalombo",
+    "Tulakan",
+    "Ngadirojo",
+    "Sudimoro",
+    "Pringkuku",
+    "Punung",
+    "Donorojo",
+  ];
 
-  const handleTagRemove = (tagToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
-    }));
-  };
+  const sektorList = [
+    "Pariwisata",
+    "Pertanian",
+    "Perikanan",
+    "UMKM",
+    "Peternakan",
+    "Perkebunan",
+    "Industri Kreatif",
+    "Energi Terbarukan",
+    "Lainnya",
+  ];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-dark mb-6">
-          Tambah Peluang Investasi Baru
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Basic Information */}
-          <div className="md:col-span-2">
-            <h3 className="text-lg font-semibold mb-4">Informasi Dasar</h3>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Judul Investasi *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-8 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                {isEdit ? "Edit Peluang Investasi" : "Tambah Peluang Investasi"}
+              </h1>
+              <p className="text-purple-100">
+                {isEdit
+                  ? "Perbarui data peluang investasi"
+                  : "Tambahkan peluang investasi baru"}
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                router.push("/dashboard/admin/manajemen-investasi")
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: Pengembangan Wisata Pantai Teleng Ria"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Singkat *
-            </label>
-            <textarea
-              required
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Deskripsikan peluang investasi secara singkat..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sektor *
-            </label>
-            <select
-              required
-              value={formData.sektor}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, sektor: e.target.value }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="mt-4 md:mt-0 bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition-colors"
             >
-              <option value="">Pilih Sektor</option>
-              <option value="Pariwisata">Pariwisata</option>
-              <option value="Pertanian">Pertanian</option>
-              <option value="Perikanan">Perikanan</option>
-              <option value="UMKM">UMKM</option>
-              <option value="Properti">Properti</option>
-            </select>
+              <i className="fas fa-arrow-left mr-2"></i>
+              Kembali
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Kecamatan *
-            </label>
-            <select
-              required
-              value={formData.kecamatan}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, kecamatan: e.target.value }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Pilih Kecamatan</option>
-              <option value="Arjosari">Arjosari</option>
-              <option value="Bandar">Bandar</option>
-              <option value="Donorojo">Donorojo</option>
-              <option value="Kebonagung">Kebonagung</option>
-              <option value="Pacitan">Pacitan</option>
-              <option value="Pringkuku">Pringkuku</option>
-              <option value="Punung">Punung</option>
-              <option value="Sudimoro">Sudimoro</option>
-              <option value="Tegalombo">Tegalombo</option>
-              <option value="Tulakan">Tulakan</option>
-              <option value="Nawangan">Nawangan</option>
-            </select>
-          </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Informasi Dasar */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Informasi Dasar
+            </h3>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lokasi Detail *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.location}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, location: e.target.value }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: Desa Sidoharjo, Kec. Pacitan"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Durasi *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.duration}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, duration: e.target.value }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: 3-4 Tahun"
-            />
-          </div>
-
-          {/* Financial Information */}
-          <div className="md:col-span-2 mt-6">
-            <h3 className="text-lg font-semibold mb-4">Informasi Keuangan</h3>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estimasi Modal *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.estimatedCapital}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  estimatedCapital: e.target.value,
-                }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: Rp 1.2 Miliar"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ROI (Return on Investment) *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.roi}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, roi: e.target.value }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: 22% per tahun"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Potensi Keuntungan/Tahun
-            </label>
-            <input
-              type="text"
-              value={formData.potentialProfit}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  potentialProfit: e.target.value,
-                }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: Rp 350 Juta/tahun"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tingkat Kelayakan (%) *
-            </label>
-            <input
-              type="number"
-              required
-              min="0"
-              max="100"
-              value={formData.feasibility}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  feasibility: parseInt(e.target.value),
-                }))
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <div className="mt-1">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${formData.feasibility}%` }}
-                ></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Judul Investasi *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Nama peluang investasi"
+                />
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {formData.feasibility >= 80
-                  ? "Sangat Layak"
-                  : formData.feasibility >= 60
-                  ? "Cukup Layak"
-                  : "Perlu Evaluasi"}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sektor *
+                </label>
+                <select
+                  name="sektor"
+                  value={formData.sektor}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  {sektorList.map((sektor) => (
+                    <option key={sektor} value={sektor}>
+                      {sektor}
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kecamatan *
+                </label>
+                <select
+                  name="kecamatan"
+                  value={formData.kecamatan}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Pilih Kecamatan</option>
+                  {kecamatanList.map((kec) => (
+                    <option key={kec} value={kec}>
+                      {kec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lokasi Detail *
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Desa/Jalan dan detail lokasi"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi Singkat *
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Deskripsi singkat tentang peluang investasi"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi Lengkap
+              </label>
+              <textarea
+                name="detail.fullDescription"
+                value={formData.detail.fullDescription}
+                onChange={handleInputChange}
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Deskripsi lengkap dan detail investasi"
+              />
             </div>
           </div>
 
-          {/* Media Upload Section */}
-          <div className="md:col-span-2 mt-6">
-            <h3 className="text-lg font-semibold mb-4">Upload Gambar</h3>
-          </div>
+          {/* Gambar */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Gambar Investasi
+            </h3>
 
-          {/* Upload Gambar Utama */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Gambar Utama *
-            </label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                ref={mainImageInputRef}
-                onChange={handleMainImageUpload}
-                accept="image/*"
-                className="hidden"
-                required
-              />
-
-              {!formData.image ? (
-                <div>
-                  <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Klik untuk upload gambar utama
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Format: JPG, PNG, WEBP (Maks. 5MB)
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => mainImageInputRef.current?.click()}
-                    className="mt-3 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
-                  >
-                    Pilih Gambar
-                  </button>
-                </div>
-              ) : (
-                <div className="relative">
+              {formData.image ? (
+                <div className="mb-4">
                   <img
                     src={formData.image}
                     alt="Preview"
@@ -523,142 +393,271 @@ const InvestmentForm = () => {
                   />
                   <button
                     type="button"
-                    onClick={removeMainImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, image: "" }))
+                    }
+                    className="text-red-600 text-sm mt-2"
                   >
-                    <i className="fas fa-times text-sm"></i>
+                    Hapus Gambar
                   </button>
-                  <p className="text-sm text-green-600 mt-2">
-                    ✓ Gambar utama berhasil diupload
-                  </p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <i className="fas fa-cloud-upload-alt text-gray-400 text-4xl mb-3"></i>
+                  <p className="text-gray-600 mb-2">Upload gambar investasi</p>
                 </div>
               )}
-
-              {uploadState.uploading && uploadState.mainImage && (
-                <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadState.uploadProgress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Mengupload... {uploadState.uploadProgress}%
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upload Gambar Tambahan */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Gambar Tambahan (Opsional)
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
               <input
                 type="file"
-                ref={additionalImagesInputRef}
-                onChange={handleAdditionalImagesUpload}
                 accept="image/*"
-                multiple
+                onChange={handleImageUpload}
                 className="hidden"
+                id="image-upload"
               />
-
-              <div className="text-center mb-4">
-                <i className="fas fa-images text-gray-400 text-2xl mb-2"></i>
-                <p className="text-sm text-gray-600 mb-2">
-                  Upload gambar tambahan untuk galeri
-                </p>
-                <button
-                  type="button"
-                  onClick={() => additionalImagesInputRef.current?.click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm"
-                  disabled={uploadState.uploading}
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Tambah Gambar
-                </button>
-              </div>
-
-              {/* Preview Gambar Tambahan */}
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                  {formData.images.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Additional ${index + 1}`}
-                        className="h-32 w-full object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeAdditionalImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <i className="fas fa-times text-xs"></i>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <label
+                htmlFor="image-upload"
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors cursor-pointer inline-block"
+              >
+                {loading ? "Uploading..." : "Pilih Gambar"}
+              </label>
             </div>
           </div>
 
-          {/* Deskripsi Lengkap */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Lengkap *
-            </label>
-            <textarea
-              required
-              value={formData.detail.fullDescription}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  detail: { ...prev.detail, fullDescription: e.target.value },
-                }))
-              }
-              rows={5}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Jelaskan secara detail tentang peluang investasi ini..."
-            />
+          {/* Analisis Keuangan */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Analisis Keuangan
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimasi Modal
+                </label>
+                <input
+                  type="text"
+                  name="estimatedCapital"
+                  value={formData.estimatedCapital}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Rp 100.000.000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ROI (Return on Investment)
+                </label>
+                <input
+                  type="text"
+                  name="roi"
+                  value={formData.roi}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="15% per tahun"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durasi Investasi
+                </label>
+                <input
+                  type="text"
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="5 tahun"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Potensi Keuntungan
+              </label>
+              <input
+                type="text"
+                name="potentialProfit"
+                value={formData.potentialProfit}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Deskripsi potensi keuntungan"
+              />
+            </div>
           </div>
 
-          {/* Informasi Kontak */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Informasi Kontak *
-            </label>
-            <textarea
-              required
-              value={formData.detail.contact}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  detail: { ...prev.detail, contact: e.target.value },
-                }))
-              }
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Contoh: Bapak Sutrisno (Kepala Desa)&#10;Telepon: 0812-3456-7890&#10;Email: contoh@desa.id"
-            />
+          {/* Analisis AI */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Analisis AI</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tingkat Kelayakan: {formData.feasibility}%
+                </label>
+                <input
+                  type="range"
+                  name="feasibility"
+                  min="0"
+                  max="100"
+                  value={formData.feasibility}
+                  onChange={handleInputChange}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rekomendasi AI
+                </label>
+                <textarea
+                  name="aiRecommendation"
+                  value={formData.aiRecommendation}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Rekomendasi dari analisis AI"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Analisis Kelayakan
+                </label>
+                <input
+                  type="text"
+                  name="detail.aiAnalysis.feasibility"
+                  value={formData.detail.aiAnalysis.feasibility}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Analisis kelayakan investasi"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimasi ROI
+                </label>
+                <input
+                  type="text"
+                  name="detail.aiAnalysis.estimatedROI"
+                  value={formData.detail.aiAnalysis.estimatedROI}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Estimasi ROI dari AI"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Analisis Risiko
+                </label>
+                <input
+                  type="text"
+                  name="detail.aiAnalysis.risk"
+                  value={formData.detail.aiAnalysis.risk}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Analisis risiko investasi"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Peluang
+                </label>
+                <input
+                  type="text"
+                  name="detail.aiAnalysis.opportunity"
+                  value={formData.detail.aiAnalysis.opportunity}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Peluang yang tersedia"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Tags</h3>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tempTag}
+                onChange={(e) => setTempTag(e.target.value)}
+                placeholder="Tambah tag"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={handleTagAdd}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Tambah
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm flex items-center"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleTagRemove(index)}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Kontak */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Kontak</h3>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Informasi Kontak
+              </label>
+              <input
+                type="text"
+                name="detail.contact"
+                value={formData.detail.contact}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Nomor telepon/email kontak person"
+              />
+            </div>
           </div>
 
           {/* Submit Button */}
-          <div className="md:col-span-2 flex justify-end space-x-4 pt-6 border-t">
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
             <button
               type="button"
-              onClick={() => router.back()}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
-              disabled={loading || uploadState.uploading}
+              onClick={() =>
+                router.push("/dashboard/admin/manajemen-investasi")
+              }
+              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={loading || uploadState.uploading || !formData.image}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -668,15 +667,13 @@ const InvestmentForm = () => {
               ) : (
                 <>
                   <i className="fas fa-save mr-2"></i>
-                  Simpan Investasi
+                  {isEdit ? "Update Investasi" : "Simpan Investasi"}
                 </>
               )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
-};
-
-export default InvestmentForm;
+}

@@ -1,3 +1,4 @@
+//src/app/dashboard/admin/approvals/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
