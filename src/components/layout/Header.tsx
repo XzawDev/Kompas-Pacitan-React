@@ -110,7 +110,7 @@ const Header = () => {
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <i className="fas fa-tachometer-alt mr-2"></i>
-                      Dashboard
+                      Dashboard Mode
                     </Link>
                     <Link
                       href="/profile"
@@ -120,14 +120,14 @@ const Header = () => {
                       <i className="fas fa-user mr-2"></i>
                       Profil Saya
                     </Link>
-                    <Link
+                    {/* <Link
                       href="/dashboard/tambah-lokasi"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <i className="fas fa-plus mr-2"></i>
                       Tambah Lokasi
-                    </Link>
+                    </Link> */}
                     {user.role === "admin" && (
                       <div className="border-t border-gray-100">
                         {/* <Link
