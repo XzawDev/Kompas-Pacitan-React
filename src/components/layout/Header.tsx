@@ -81,7 +81,7 @@ const Header = () => {
             {user ? (
               <div className="relative">
                 <button
-                  onClick={() => router.push("/dashboard")}
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 rounded-xl px-3 py-2 transition"
                 >
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
