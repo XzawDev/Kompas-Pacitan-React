@@ -205,7 +205,7 @@ const Header = () => {
             ))}
             {user ? (
               <>
-                <div className="pt-3 border-t">
+                {/* <div className="pt-3 border-t">
                   <Link
                     href="/dashboard"
                     className="text-gray-600 pl-3 text-base"
@@ -240,7 +240,7 @@ const Header = () => {
                   className="text-red-600 pl-3 text-base text-left"
                 >
                   Keluar
-                </button>
+                </button> */}
               </>
             ) : (
               <div className="pt-3 border-t">
