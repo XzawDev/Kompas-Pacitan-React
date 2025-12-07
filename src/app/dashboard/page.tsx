@@ -218,7 +218,7 @@ const QuickActions = ({ userRole }: { userRole: string }) => {
       description: "Kelola data yang Anda ajukan",
       icon: "fas fa-database",
       color: "bg-purple-500",
-      href: "/dashboard/data-saya",
+      href: "./coming-soon/",
       available: true,
     },
     {
@@ -227,7 +227,7 @@ const QuickActions = ({ userRole }: { userRole: string }) => {
       icon: "fas fa-chart-line",
       color: "bg-orange-500",
       href: "/dashboard/admin/tambah-investasi",
-      available: userRole === "admin",
+      available: userRole === "admin" || userRole === "owner",
     },
     {
       title: "Kelola Desa",
@@ -235,7 +235,7 @@ const QuickActions = ({ userRole }: { userRole: string }) => {
       icon: "fas fa-home",
       color: "bg-teal-500",
       href: "/dashboard/admin/tambah-desa",
-      available: userRole === "admin",
+      available: userRole === "admin" || userRole === "owner",
     },
     {
       title: "Persetujuan",
@@ -243,7 +243,7 @@ const QuickActions = ({ userRole }: { userRole: string }) => {
       icon: "fas fa-shield-alt",
       color: "bg-red-500",
       href: "/dashboard/admin/approvals",
-      available: userRole === "admin",
+      available: userRole === "admin" || userRole === "owner",
     },
   ];
 
@@ -376,7 +376,9 @@ export default function Dashboard() {
 
       const [statsData, approvalsData, locationsData] = await Promise.all([
         getDashboardStats(),
-        user?.role === "admin" ? getPendingApprovals() : Promise.resolve([]),
+        user?.role === "admin" || user?.role === "owner"
+          ? getPendingApprovals()
+          : Promise.resolve([]),
         getRecentLocations(),
       ]);
 
@@ -395,7 +397,7 @@ export default function Dashboard() {
       setRecentLocations(locationsData);
 
       // Hanya generate aktivitas untuk admin
-      if (user?.role === "admin") {
+      if (user?.role === "admin" || user?.role === "owner") {
         generateRecentActivities(locationsData, approvalsData || []);
       }
     } catch (error) {
@@ -413,7 +415,7 @@ export default function Dashboard() {
       let desaList: Desa[] = [];
 
       if (user) {
-        if (user.role === "admin") {
+        if (user.role === "admin" || user.role === "owner") {
           userLocations = await getApprovedLocations();
           desaList = await getDesa();
         } else {
@@ -446,7 +448,7 @@ export default function Dashboard() {
 
   const getRecentLocations = async (): Promise<Location[]> => {
     try {
-      if (user?.role === "admin") {
+      if (user?.role === "admin" || user?.role === "owner") {
         const locations = await getApprovedLocations();
         return locations.slice(0, 3);
       } else if (user) {
@@ -562,7 +564,7 @@ export default function Dashboard() {
               Selamat Datang, {user.username || user.displayName}!
             </h1>
             <p className="text-gray-600 mt-2">
-              {user.role === "admin"
+              {user.role === "admin" || user.role === "owner"
                 ? "Kelola semua data dan persetujuan di Kabupaten Pacitan"
                 : "Pantau perkembangan dan kelola data yang Anda ajukan"}
             </p>
@@ -578,7 +580,7 @@ export default function Dashboard() {
               {/* Stats Grid - Adjust grid columns based on user role */}
               <div
                 className={`grid gap-6 mb-8 ${
-                  user.role === "admin"
+                  user.role === "admin" || user.role === "owner"
                     ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                 }`}
@@ -604,7 +606,7 @@ export default function Dashboard() {
                   color="purple"
                   description="Desa terdaftar"
                 />
-                {user.role === "admin" && (
+                {(user.role === "admin" || user.role === "owner") && (
                   <>
                     <StatCard
                       title="Peluang Investasi"
@@ -625,7 +627,7 @@ export default function Dashboard() {
               </div>
 
               {/* Main Content Grid - Different layouts for admin vs user */}
-              {user.role === "admin" ? (
+              {user.role === "admin" || user.role === "owner" ? (
                 // Admin Layout (Original)
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
                   {/* Left Column - 2/3 width */}

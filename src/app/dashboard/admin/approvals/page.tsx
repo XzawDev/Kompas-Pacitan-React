@@ -45,13 +45,16 @@ export default function AdminApprovals() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== "admin")) {
+    if (
+      !authLoading &&
+      (!user || (user.role !== "admin" && user.role !== "owner"))
+    ) {
       router.push("/dashboard");
     }
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user?.role === "admin") {
+    if (user?.role === "admin" || user?.role === "owner") {
       loadApprovals();
       loadStats();
     }
@@ -262,7 +265,7 @@ export default function AdminApprovals() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "owner")) {
     return null;
   }
 
