@@ -250,7 +250,7 @@ function TambahLokasiContent() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8 text-white">
+              <div className="bg-linear-to-r from-blue-600 to-blue-700 px-6 py-8 text-white">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
@@ -315,6 +315,7 @@ function TambahLokasiContent() {
                         <option value="UMKM">UMKM</option>
                         <option value="Infrastruktur">Infrastruktur</option>
                         <option value="Aset Desa">Aset Desa</option>
+                        <option value="Sejarah">Sejarah</option>
                       </select>
                     </div>
                   </div>
@@ -435,7 +436,7 @@ function TambahLokasiContent() {
                 </div>
 
                 {/* Potensi & Kelayakan */}
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-800">
                     Analisis Potensi
                   </h3>
@@ -473,7 +474,7 @@ function TambahLokasiContent() {
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Fasilitas */}
                 <div className="space-y-4">

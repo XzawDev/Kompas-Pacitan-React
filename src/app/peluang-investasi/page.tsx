@@ -103,10 +103,10 @@ const PeluangInvestasiPage = () => {
     feasibility: number
   ): { label: string; class: string } => {
     if (feasibility >= 85)
-      return { label: "Tinggi", class: "bg-green-500 text-white" };
+      return { label: "Tinggi", class: "bg-green-700 text-dark" };
     if (feasibility >= 70)
       return { label: "Sedang", class: "bg-yellow-500 text-dark" };
-    return { label: "Rendah", class: "bg-red-500 text-white" };
+    return { label: "Rendah", class: "bg-red-500 text-dark" };
   };
 
   const getSectorBadge = (investment: InvestmentOpportunity) => {

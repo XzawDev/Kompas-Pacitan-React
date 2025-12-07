@@ -12,13 +12,15 @@ import { GeminiAIService } from "@/lib/geminiServices";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
-// Import Swiper
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "swiper/css/effect-fade";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, EffectFade, Autoplay } from "swiper/modules";
+// Import Shadcn/ui Carousel
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function DetailDesaPage() {
   const params = useParams();
@@ -28,7 +30,7 @@ export default function DetailDesaPage() {
   const [desa, setDesa] = useState<Desa | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("potensi");
 
   // State untuk AI Recommendations
   const [investmentRecommendations, setInvestmentRecommendations] =
@@ -203,21 +205,21 @@ export default function DetailDesaPage() {
           </button>
         </div>
 
-        {/* Desa Header */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          {/* Desa Info */}
-          <div className="desa-info mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-dark mb-3">
+        {/* Desa Header - Diperbaiki layout untuk mobile */}
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6">
+          {/* Desa Info - Diperbaiki ukuran dan layout */}
+          <div className="desa-info mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-dark mb-2 md:mb-3">
               Desa {desa.nama}
             </h1>
-            <p className="text-lg text-gray-600 mb-4">
+            <p className="text-base md:text-lg text-gray-600 mb-3 md:mb-4">
               Kecamatan {desa.kecamatan}
             </p>
             <div className="desa-badges flex flex-wrap gap-2">
               {sectorBadges.map((sector, index) => (
                 <span
                   key={index}
-                  className={`sector-badge px-3 py-1 rounded-full text-sm font-semibold ${
+                  className={`sector-badge px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold ${
                     sector === "Pertanian"
                       ? "bg-green-100 text-green-800"
                       : sector === "Pariwisata"
@@ -233,83 +235,69 @@ export default function DetailDesaPage() {
             </div>
           </div>
 
-          {/* Image Carousel dengan Swiper */}
-          <div className="project-header relative rounded-xl overflow-hidden mb-6">
-            <Swiper
-              modules={[Navigation, Pagination, EffectFade, Autoplay]}
-              navigation={{
-                nextEl: ".swiper-button-next",
-                prevEl: ".swiper-button-prev",
-              }}
-              pagination={{
-                clickable: true,
-                el: ".swiper-pagination",
-                type: "bullets",
-              }}
-              effect="fade"
-              fadeEffect={{ crossFade: true }}
-              autoplay={{
-                delay: 5000,
-                disableOnInteraction: false,
-              }}
-              loop={images.length > 1}
-              className="h-64 md:h-80 rounded-xl"
-            >
-              {images.map((image, index) => (
-                <SwiperSlide key={index}>
-                  <div className="relative w-full h-full">
-                    <img
-                      src={image}
-                      alt={`Desa ${desa.nama} - Gambar ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                      {index + 1} / {images.length}
+          {/* Image Carousel dengan Shadcn/ui Carousel - Diperbaiki ukuran gambar */}
+          <div className="project-header relative rounded-xl overflow-hidden mb-4 md:mb-6">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {images.map((image, index) => (
+                  <CarouselItem key={index}>
+                    <div className="p-1">
+                      <Card className="border-0 shadow-none">
+                        <CardContent className="flex items-center justify-center p-0 relative">
+                          {/* Diperbaiki: Ukuran gambar responsif untuk mobile dan desktop */}
+                          <img
+                            src={image}
+                            alt={`Desa ${desa.nama} - Gambar ${index + 1}`}
+                            className="w-full h-48 md:h-64 lg:h-80 xl:h-96 object-cover rounded-xl"
+                          />
+                          <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded-full text-xs md:text-sm">
+                            {index + 1} / {images.length}
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </div>
-                </SwiperSlide>
-              ))}
-
-              {/* Custom Navigation Buttons */}
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
               {images.length > 1 && (
                 <>
-                  <div className="swiper-button-prev w-12! h-12! bg-white/80! rounded-full! text-primary! hover:bg-white! transition-all after:text-xl! after:font-bold!"></div>
-                  <div className="swiper-button-next w-12! h-12! bg-white/80! rounded-full! text-primary! hover:bg-white! transition-all after:text-xl! after:font-bold!"></div>
-                  <div className="swiper-pagination bottom-4!"></div>
+                  {/* Diperbaiki: Ukuran dan posisi tombol carousel */}
+                  <CarouselPrevious className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-white/80 rounded-full text-primary hover:bg-white transition-all border-0 shadow-lg" />
+                  <CarouselNext className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-white/80 rounded-full text-primary hover:bg-white transition-all border-0 shadow-lg" />
                 </>
               )}
-            </Swiper>
+            </Carousel>
           </div>
         </div>
 
         {/* Grid Layout Utama */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
           {/* Kolom Kiri */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Informasi Geografis*/}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-map-marker-alt text-primary mr-2"></i>
                 Informasi Geografis
               </h3>
-              <div className="space-y-4">
-                <div className="pb-3 border-b border-gray-100">
+              <div className="space-y-3 md:space-y-4">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">Desa</h4>
                   <p className="text-gray-600 text-sm mt-1">{desa.nama}</p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Kecamatan
                   </h4>
                   <p className="text-gray-600 text-sm mt-1">{desa.kecamatan}</p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Kabupaten
                   </h4>
                   <p className="text-gray-600 text-sm mt-1">Pacitan</p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Latitude
                   </h4>
@@ -317,7 +305,7 @@ export default function DetailDesaPage() {
                     {desa.koordinat?.lat || "-8.2065"}
                   </p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Longitude
                   </h4>
@@ -329,50 +317,52 @@ export default function DetailDesaPage() {
             </div>
 
             {/* Deskripsi Desa */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-info-circle text-primary mr-2"></i>
                 Tentang Desa {desa.nama}
               </h3>
-              <p className="text-gray-700 leading-relaxed">{desa.deskripsi}</p>
+              <p className="text-gray-700 leading-relaxed text-sm md:text-base">
+                {desa.deskripsi}
+              </p>
             </div>
 
             {/* Statistik Desa */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-chart-bar text-primary mr-2"></i>
                 Statistik Desa
               </h3>
-              <div className="stats-grid grid grid-cols-2 gap-4">
-                <div className="stat-item bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="stat-value text-primary font-bold text-lg">
+              <div className="stats-grid grid grid-cols-2 gap-3 md:gap-4">
+                <div className="stat-item bg-gray-50 rounded-lg p-3 md:p-4 text-center border border-gray-200">
+                  <div className="stat-value text-primary font-bold text-base md:text-lg">
                     {statistik.penduduk.toLocaleString()}
                   </div>
-                  <div className="stat-label text-gray-500 text-sm mt-1">
+                  <div className="stat-label text-gray-500 text-xs md:text-sm mt-1">
                     Penduduk
                   </div>
                 </div>
-                <div className="stat-item bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="stat-value text-green-500 font-bold text-lg">
+                <div className="stat-item bg-gray-50 rounded-lg p-3 md:p-4 text-center border border-gray-200">
+                  <div className="stat-value text-green-500 font-bold text-base md:text-lg">
                     {statistik.luas} Ha
                   </div>
-                  <div className="stat-label text-gray-500 text-sm mt-1">
+                  <div className="stat-label text-gray-500 text-xs md:text-sm mt-1">
                     Luas Wilayah
                   </div>
                 </div>
-                <div className="stat-item bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="stat-value text-purple-500 font-bold text-lg">
+                <div className="stat-item bg-gray-50 rounded-lg p-3 md:p-4 text-center border border-gray-200">
+                  <div className="stat-value text-purple-500 font-bold text-base md:text-lg">
                     {statistik.umkm}
                   </div>
-                  <div className="stat-label text-gray-500 text-sm mt-1">
+                  <div className="stat-label text-gray-500 text-xs md:text-sm mt-1">
                     UMKM
                   </div>
                 </div>
-                <div className="stat-item bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="stat-value text-orange-500 font-bold text-lg">
+                <div className="stat-item bg-gray-50 rounded-lg p-3 md:p-4 text-center border border-gray-200">
+                  <div className="stat-value text-orange-500 font-bold text-base md:text-lg">
                     {wisata.length}
                   </div>
-                  <div className="stat-label text-gray-500 text-sm mt-1">
+                  <div className="stat-label text-gray-500 text-xs md:text-sm mt-1">
                     Destinasi Wisata
                   </div>
                 </div>
@@ -381,15 +371,15 @@ export default function DetailDesaPage() {
           </div>
 
           {/* Kolom Kanan */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Infrastruktur */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-road text-primary mr-2"></i>
                 Infrastruktur
               </h3>
-              <div className="space-y-4">
-                <div className="pb-3 border-b border-gray-100">
+              <div className="space-y-3 md:space-y-4">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Kondisi Jalan
                   </h4>
@@ -397,7 +387,7 @@ export default function DetailDesaPage() {
                     {infrastruktur.jalan}
                   </p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Akses Air Bersih
                   </h4>
@@ -405,7 +395,7 @@ export default function DetailDesaPage() {
                     {infrastruktur.air}
                   </p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Akses Internet
                   </h4>
@@ -413,7 +403,7 @@ export default function DetailDesaPage() {
                     {infrastruktur.internet}
                   </p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Fasilitas Kesehatan
                   </h4>
@@ -425,15 +415,17 @@ export default function DetailDesaPage() {
             </div>
 
             {/* Potensi Unggulan */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-star text-green-500 mr-2"></i>
                 Potensi Unggulan
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {statistik.pertanian > 100 && (
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-700">Pertanian</span>
+                    <span className="text-gray-700 text-sm md:text-base">
+                      Pertanian
+                    </span>
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
                       Sangat Potensial
                     </span>
@@ -441,7 +433,9 @@ export default function DetailDesaPage() {
                 )}
                 {wisata.length > 0 && (
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-700">Pariwisata</span>
+                    <span className="text-gray-700 text-sm md:text-base">
+                      Pariwisata
+                    </span>
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
                       Potensial
                     </span>
@@ -449,7 +443,9 @@ export default function DetailDesaPage() {
                 )}
                 {statistik.umkm > 20 && (
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-700">UMKM</span>
+                    <span className="text-gray-700 text-sm md:text-base">
+                      UMKM
+                    </span>
                     <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-semibold">
                       Sangat Potensial
                     </span>
@@ -459,13 +455,13 @@ export default function DetailDesaPage() {
             </div>
 
             {/* Koordinat */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-lg font-bold text-dark mb-3 md:mb-4 flex items-center">
                 <i className="fas fa-map-pin text-primary mr-2"></i>
                 Koordinat
               </h3>
-              <div className="space-y-4">
-                <div className="pb-3 border-b border-gray-100">
+              <div className="space-y-3 md:space-y-4">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Latitude
                   </h4>
@@ -473,7 +469,7 @@ export default function DetailDesaPage() {
                     {desa.koordinat?.lat || "-8.2065"}
                   </p>
                 </div>
-                <div className="pb-3 border-b border-gray-100">
+                <div className="pb-2 md:pb-3 border-b border-gray-100">
                   <h4 className="font-medium text-gray-700 text-sm">
                     Longitude
                   </h4>
@@ -487,7 +483,7 @@ export default function DetailDesaPage() {
         </div>
 
         {/* Informasi Detail dengan Tabs */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-10">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 md:mb-10">
           {/* Tab Navigation */}
           <div className="border-b border-gray-200">
             <nav className="flex overflow-x-auto">
@@ -508,7 +504,7 @@ export default function DetailDesaPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 transition-all ${
+                  className={`flex items-center space-x-2 px-4 md:px-6 py-3 md:py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
                     activeTab === tab.id
                       ? "border-primary text-primary"
                       : "border-transparent text-gray-500 hover:text-gray-700"
@@ -522,24 +518,24 @@ export default function DetailDesaPage() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {/* Potensi Tab */}
             {activeTab === "potensi" && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              <div className="space-y-4 md:space-y-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
                   Potensi Desa
                 </h3>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {/* Aset Tanah */}
-                  <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                      <i className="fas fa-landmark text-blue-600 text-xl"></i>
+                  <div className="bg-blue-50 rounded-xl p-4 md:p-6 border border-blue-200">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                      <i className="fas fa-landmark text-blue-600 text-lg md:text-xl"></i>
                     </div>
-                    <h4 className="font-semibold text-gray-800 mb-3">
+                    <h4 className="font-semibold text-gray-800 mb-2 md:mb-3 text-sm md:text-base">
                       Aset Tanah
                     </h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
+                    <ul className="space-y-1 md:space-y-2 text-xs md:text-sm text-gray-600">
                       {asetTanah.length > 0 ? (
                         asetTanah.map((aset, index) => (
                           <li key={index} className="flex items-start">
@@ -554,12 +550,14 @@ export default function DetailDesaPage() {
                   </div>
 
                   {/* BUMDes */}
-                  <div className="bg-green-50 rounded-xl p-6 border border-green-200">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                      <i className="fas fa-building text-green-600 text-xl"></i>
+                  <div className="bg-green-50 rounded-xl p-4 md:p-6 border border-green-200">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                      <i className="fas fa-building text-green-600 text-lg md:text-xl"></i>
                     </div>
-                    <h4 className="font-semibold text-gray-800 mb-3">BUMDes</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
+                    <h4 className="font-semibold text-gray-800 mb-2 md:mb-3 text-sm md:text-base">
+                      BUMDes
+                    </h4>
+                    <ul className="space-y-1 md:space-y-2 text-xs md:text-sm text-gray-600">
                       {bumdes.length > 0 ? (
                         bumdes.map((bumdesItem, index) => (
                           <li key={index} className="flex items-start">
@@ -574,18 +572,20 @@ export default function DetailDesaPage() {
                   </div>
 
                   {/* Sektor Unggulan */}
-                  <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                      <i className="fas fa-star text-orange-600 text-xl"></i>
+                  <div className="bg-orange-50 rounded-xl p-4 md:p-6 border border-orange-200">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                      <i className="fas fa-star text-orange-600 text-lg md:text-xl"></i>
                     </div>
-                    <h4 className="font-semibold text-gray-800 mb-3">
+                    <h4 className="font-semibold text-gray-800 mb-2 md:mb-3 text-sm md:text-base">
                       Sektor Unggulan
                     </h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2 md:space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Pertanian</span>
+                        <span className="text-gray-600 text-xs md:text-sm">
+                          Pertanian
+                        </span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-semibold text-xs md:text-sm ${
                             statistik.pertanian > 100
                               ? "text-green-600"
                               : "text-yellow-600"
@@ -597,9 +597,11 @@ export default function DetailDesaPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Wisata</span>
+                        <span className="text-gray-600 text-xs md:text-sm">
+                          Wisata
+                        </span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-semibold text-xs md:text-sm ${
                             wisata.length > 3
                               ? "text-green-600"
                               : "text-yellow-600"
@@ -609,9 +611,11 @@ export default function DetailDesaPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">UMKM</span>
+                        <span className="text-gray-600 text-xs md:text-sm">
+                          UMKM
+                        </span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-semibold text-xs md:text-sm ${
                             statistik.umkm > 20
                               ? "text-green-600"
                               : "text-yellow-600"
@@ -630,19 +634,19 @@ export default function DetailDesaPage() {
 
             {/* Wisata Tab */}
             {activeTab === "wisata" && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              <div className="space-y-4 md:space-y-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
                   Destinasi Wisata
                 </h3>
 
                 {wisata.length > 0 ? (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {wisata.map((wisataItem: WisataItem, index) => (
                       <div
                         key={index}
                         className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all"
                       >
-                        <div className="h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+                        <div className="h-36 md:h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
                           {wisataItem.gambar ? (
                             <img
                               src={wisataItem.gambar}
@@ -651,15 +655,15 @@ export default function DetailDesaPage() {
                             />
                           ) : (
                             <div className="bg-gradient-to-br from-blue-400 to-green-400 w-full h-full flex items-center justify-center">
-                              <i className="fas fa-mountain text-white text-3xl"></i>
+                              <i className="fas fa-mountain text-white text-2xl md:text-3xl"></i>
                             </div>
                           )}
                         </div>
-                        <div className="p-4">
-                          <h4 className="font-semibold text-gray-800 mb-2">
+                        <div className="p-3 md:p-4">
+                          <h4 className="font-semibold text-gray-800 mb-2 text-sm md:text-base">
                             {wisataItem.nama}
                           </h4>
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-3 line-clamp-2">
                             {wisataItem.deskripsi}
                           </p>
                           <div className="flex items-center text-xs text-gray-500">
@@ -671,11 +675,11 @@ export default function DetailDesaPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-mountain text-gray-400 text-xl"></i>
+                  <div className="text-center py-6 md:py-8">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                      <i className="fas fa-mountain text-gray-400 text-lg md:text-xl"></i>
                     </div>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 text-sm md:text-base">
                       Belum ada data destinasi wisata
                     </p>
                   </div>
@@ -685,36 +689,36 @@ export default function DetailDesaPage() {
 
             {/* Produk Unggulan Tab */}
             {activeTab === "produk" && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              <div className="space-y-4 md:space-y-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
                   Produk Unggulan Desa
                 </h3>
 
                 {produkUnggulan.length > 0 ? (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {produkUnggulan.map((produk, index) => (
                       <div
                         key={index}
-                        className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all text-center"
+                        className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-all text-center"
                       >
-                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                          <i className="fas fa-box text-primary text-xl"></i>
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3 md:mb-4 mx-auto">
+                          <i className="fas fa-box text-primary text-lg md:text-xl"></i>
                         </div>
-                        <h4 className="font-semibold text-gray-800 mb-3">
+                        <h4 className="font-semibold text-gray-800 mb-2 md:mb-3 text-sm md:text-base">
                           {produk}
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs md:text-sm text-gray-600">
                           Produk unggulan khas Desa {desa.nama} yang berkualitas
                         </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-shopping-bag text-gray-400 text-xl"></i>
+                  <div className="text-center py-6 md:py-8">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                      <i className="fas fa-shopping-bag text-gray-400 text-lg md:text-xl"></i>
                     </div>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 text-sm md:text-base">
                       Belum ada data produk unggulan
                     </p>
                   </div>
@@ -724,9 +728,9 @@ export default function DetailDesaPage() {
 
             {/* Peluang Investasi Tab dengan AI */}
             {activeTab === "investasi" && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">
+              <div className="space-y-4 md:space-y-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 md:mb-4 gap-3">
+                  <h3 className="text-lg md:text-xl font-semibold text-gray-800">
                     Peluang Investasi
                   </h3>
 
@@ -734,7 +738,7 @@ export default function DetailDesaPage() {
                   {!investmentRecommendations && !loadingAI && (
                     <button
                       onClick={generateAIRecommendations}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold flex items-center"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 md:px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold flex items-center justify-center text-sm md:text-base"
                     >
                       <i className="fas fa-robot mr-2"></i>
                       Dapatkan Rekomendasi AI
@@ -744,7 +748,7 @@ export default function DetailDesaPage() {
 
                 {/* Timestamp untuk rekomendasi terakhir */}
                 {lastGenerated && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-3 text-xs md:text-sm text-blue-700">
                     <i className="fas fa-info-circle mr-2"></i>
                     Rekomendasi terakhir dihasilkan:{" "}
                     {lastGenerated.toLocaleString("id-ID")}
@@ -753,12 +757,12 @@ export default function DetailDesaPage() {
 
                 {/* Loading State */}
                 {loadingAI && (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">
+                  <div className="text-center py-6 md:py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 md:h-12 md:w-12 border-b-2 border-blue-600 mx-auto mb-3 md:mb-4"></div>
+                    <p className="text-gray-600 text-sm md:text-base">
                       AI sedang menganalisis peluang investasi...
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-xs md:text-sm text-gray-500 mt-1 md:mt-2">
                       Menggunakan data internal dan eksternal untuk rekomendasi
                       terbaik
                     </p>
@@ -767,12 +771,14 @@ export default function DetailDesaPage() {
 
                 {/* Error State */}
                 {aiError && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                    <i className="fas fa-exclamation-triangle text-red-500 text-2xl mb-3"></i>
-                    <p className="text-red-700 mb-4">{aiError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 md:p-6 text-center">
+                    <i className="fas fa-exclamation-triangle text-red-500 text-xl md:text-2xl mb-2 md:mb-3"></i>
+                    <p className="text-red-700 mb-3 md:mb-4 text-sm md:text-base">
+                      {aiError}
+                    </p>
                     <button
                       onClick={generateAIRecommendations}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                      className="bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm md:text-base"
                     >
                       Coba Lagi
                     </button>
@@ -781,15 +787,15 @@ export default function DetailDesaPage() {
 
                 {/* AI Recommendations */}
                 {investmentRecommendations && (
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-3 md:p-4 mb-4 md:mb-6">
                       <div className="flex items-center">
-                        <i className="fas fa-robot text-blue-600 text-xl mr-3"></i>
+                        <i className="fas fa-robot text-blue-600 text-lg md:text-xl mr-2 md:mr-3"></i>
                         <div>
-                          <h4 className="font-semibold text-blue-800">
+                          <h4 className="font-semibold text-blue-800 text-sm md:text-base">
                             Rekomendasi AI Cerdas
                           </h4>
-                          <p className="text-blue-600 text-sm">
+                          <p className="text-blue-600 text-xs md:text-sm">
                             Dianalisis berdasarkan data desa dan tren terkini di
                             Pacitan
                           </p>
@@ -797,21 +803,21 @@ export default function DetailDesaPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4 md:space-y-6">
                       {investmentRecommendations.recommendations.map(
                         (rec, index) => (
                           <div
                             key={index}
-                            className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                            className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-all"
                           >
-                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-3 md:mb-4">
                               <div className="flex-1">
-                                <div className="flex items-start justify-between mb-3">
-                                  <h4 className="text-lg font-semibold text-gray-800">
+                                <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-2 md:mb-3">
+                                  <h4 className="text-base md:text-lg font-semibold text-gray-800 mb-2 md:mb-0">
                                     {rec.title}
                                   </h4>
                                   <span
-                                    className={`ml-4 px-3 py-1 rounded-full text-xs font-semibold ${
+                                    className={`px-2 md:px-3 py-1 rounded-full text-xs font-semibold self-start md:ml-4 ${
                                       rec.riskLevel === "Rendah"
                                         ? "bg-green-100 text-green-800"
                                         : rec.riskLevel === "Sedang"
@@ -822,32 +828,32 @@ export default function DetailDesaPage() {
                                     Risiko {rec.riskLevel}
                                   </span>
                                 </div>
-                                <p className="text-gray-600 mb-4">
+                                <p className="text-gray-600 text-sm md:text-base mb-3 md:mb-4">
                                   {rec.description}
                                 </p>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                  <div className="bg-gray-50 rounded-lg p-3">
-                                    <div className="text-sm text-gray-500">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
+                                  <div className="bg-gray-50 rounded-lg p-2 md:p-3">
+                                    <div className="text-xs md:text-sm text-gray-500">
                                       Estimasi Investasi
                                     </div>
-                                    <div className="font-semibold text-gray-800">
+                                    <div className="font-semibold text-gray-800 text-sm md:text-base">
                                       {rec.estimatedInvestment}
                                     </div>
                                   </div>
-                                  <div className="bg-gray-50 rounded-lg p-3">
-                                    <div className="text-sm text-gray-500">
+                                  <div className="bg-gray-50 rounded-lg p-2 md:p-3">
+                                    <div className="text-xs md:text-sm text-gray-500">
                                       Potensi ROI
                                     </div>
-                                    <div className="font-semibold text-green-600">
+                                    <div className="font-semibold text-green-600 text-sm md:text-base">
                                       {rec.potentialROI}
                                     </div>
                                   </div>
-                                  <div className="bg-gray-50 rounded-lg p-3">
-                                    <div className="text-sm text-gray-500">
+                                  <div className="bg-gray-50 rounded-lg p-2 md:p-3">
+                                    <div className="text-xs md:text-sm text-gray-500">
                                       Timeframe
                                     </div>
-                                    <div className="font-semibold text-gray-800">
+                                    <div className="font-semibold text-gray-800 text-sm md:text-base">
                                       {rec.timeframe}
                                     </div>
                                   </div>
@@ -855,10 +861,10 @@ export default function DetailDesaPage() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 border-t border-gray-200 pt-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 border-t border-gray-200 pt-3 md:pt-4">
                               {/* Keuntungan */}
                               <div>
-                                <h5 className="font-semibold text-gray-700 mb-2 flex items-center">
+                                <h5 className="font-semibold text-gray-700 mb-1 md:mb-2 flex items-center text-sm md:text-base">
                                   <i className="fas fa-check-circle text-green-500 mr-2"></i>
                                   Keuntungan Utama
                                 </h5>
@@ -866,7 +872,7 @@ export default function DetailDesaPage() {
                                   {rec.keyAdvantages.map((advantage, idx) => (
                                     <li
                                       key={idx}
-                                      className="flex items-start text-sm text-gray-600"
+                                      className="flex items-start text-xs md:text-sm text-gray-600"
                                     >
                                       <i className="fas fa-chevron-right text-green-500 text-xs mt-1 mr-2"></i>
                                       {advantage}
@@ -877,7 +883,7 @@ export default function DetailDesaPage() {
 
                               {/* Tantangan */}
                               <div>
-                                <h5 className="font-semibold text-gray-700 mb-2 flex items-center">
+                                <h5 className="font-semibold text-gray-700 mb-1 md:mb-2 flex items-center text-sm md:text-base">
                                   <i className="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
                                   Tantangan
                                 </h5>
@@ -885,7 +891,7 @@ export default function DetailDesaPage() {
                                   {rec.challenges.map((challenge, idx) => (
                                     <li
                                       key={idx}
-                                      className="flex items-start text-sm text-gray-600"
+                                      className="flex items-start text-xs md:text-sm text-gray-600"
                                     >
                                       <i className="fas fa-chevron-right text-yellow-500 text-xs mt-1 mr-2"></i>
                                       {challenge}
@@ -896,7 +902,7 @@ export default function DetailDesaPage() {
 
                               {/* Target Pasar */}
                               <div>
-                                <h5 className="font-semibold text-gray-700 mb-2 flex items-center">
+                                <h5 className="font-semibold text-gray-700 mb-1 md:mb-2 flex items-center text-sm md:text-base">
                                   <i className="fas fa-bullseye text-blue-500 mr-2"></i>
                                   Target Pasar
                                 </h5>
@@ -904,7 +910,7 @@ export default function DetailDesaPage() {
                                   {rec.targetMarket.map((market, idx) => (
                                     <li
                                       key={idx}
-                                      className="flex items-start text-sm text-gray-600"
+                                      className="flex items-start text-xs md:text-sm text-gray-600"
                                     >
                                       <i className="fas fa-chevron-right text-blue-500 text-xs mt-1 mr-2"></i>
                                       {market}
@@ -924,37 +930,37 @@ export default function DetailDesaPage() {
                 {!investmentRecommendations &&
                   !loadingAI &&
                   peluangInvestasi.length > 0 && (
-                    <div className="space-y-4">
+                    <div className="space-y-3 md:space-y-4">
                       {peluangInvestasi.map((investasi, index) => (
                         <div
                           key={index}
-                          className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                          className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-all"
                         >
                           <div className="flex flex-col md:flex-row md:items-start md:justify-between">
                             <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                              <h4 className="text-base md:text-lg font-semibold text-gray-800 mb-2">
                                 {investasi.judul}
                               </h4>
-                              <p className="text-gray-600 mb-4">
+                              <p className="text-gray-600 text-sm md:text-base mb-3 md:mb-4">
                                 {investasi.deskripsi}
                               </p>
-                              <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                              <div className="flex flex-wrap gap-2 mb-3 md:mb-4">
+                                <span className="bg-blue-100 text-blue-800 px-2 md:px-3 py-1 rounded-full text-xs">
                                   Estimasi: {investasi.estimasiBiaya}
                                 </span>
-                                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                                <span className="bg-green-100 text-green-800 px-2 md:px-3 py-1 rounded-full text-xs">
                                   ROI Potensial
                                 </span>
                               </div>
                             </div>
-                            <div className="md:ml-6 mt-4 md:mt-0">
-                              <button className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition-all font-semibold">
+                            <div className="md:ml-6 mt-3 md:mt-0">
+                              <button className="bg-primary text-white px-4 md:px-6 py-2 rounded-xl hover:bg-blue-700 transition-all font-semibold text-sm md:text-base w-full md:w-auto">
                                 Hubungi
                               </button>
                             </div>
                           </div>
-                          <div className="border-t border-gray-200 pt-4 mt-4">
-                            <div className="flex items-center text-sm text-gray-600">
+                          <div className="border-t border-gray-200 pt-3 md:pt-4 mt-3 md:mt-4">
+                            <div className="flex items-center text-xs md:text-sm text-gray-600">
                               <i className="fas fa-phone mr-2"></i>
                               <span>Kontak: {investasi.kontak}</span>
                             </div>
@@ -968,14 +974,14 @@ export default function DetailDesaPage() {
                 {!investmentRecommendations &&
                   !loadingAI &&
                   peluangInvestasi.length === 0 && (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i className="fas fa-chart-bar text-gray-400 text-xl"></i>
+                    <div className="text-center py-6 md:py-8">
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i className="fas fa-chart-bar text-gray-400 text-lg md:text-xl"></i>
                       </div>
-                      <p className="text-gray-500">
+                      <p className="text-gray-500 text-sm md:text-base">
                         Belum ada data peluang investasi
                       </p>
-                      <p className="text-sm text-gray-400 mt-2">
+                      <p className="text-xs md:text-sm text-gray-400 mt-1 md:mt-2">
                         Klik "Dapatkan Rekomendasi AI" untuk analisis otomatis
                       </p>
                     </div>
@@ -987,43 +993,6 @@ export default function DetailDesaPage() {
       </main>
 
       <Footer />
-
-      <style jsx>{`
-        /* Swiper custom styles */
-        :global(.swiper-button-prev),
-        :global(.swiper-button-next) {
-          width: 3rem;
-          height: 3rem;
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 50%;
-          color: #1a73e8;
-          transition: all 0.3s ease;
-        }
-
-        :global(.swiper-button-prev):hover,
-        :global(.swiper-button-next):hover {
-          background: white;
-          transform: scale(1.1);
-        }
-
-        :global(.swiper-button-prev):after,
-        :global(.swiper-button-next):after {
-          font-size: 1.25rem;
-          font-weight: bold;
-        }
-
-        :global(.swiper-pagination-bullet) {
-          width: 10px;
-          height: 10px;
-          background: rgba(255, 255, 255, 0.6);
-          opacity: 1;
-        }
-
-        :global(.swiper-pagination-bullet-active) {
-          background: white;
-          transform: scale(1.2);
-        }
-      `}</style>
     </div>
   );
 }

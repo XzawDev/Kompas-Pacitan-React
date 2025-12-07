@@ -23,7 +23,7 @@ export default function ManajemenLokasi() {
       return;
     }
 
-    if (user?.role !== "admin") {
+    if (user?.role !== "admin" && user?.role !== "owner") {
       router.push("/dashboard");
       return;
     }
@@ -115,7 +115,7 @@ export default function ManajemenLokasi() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "owner")) {
     return null;
   }
 

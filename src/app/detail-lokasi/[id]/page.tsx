@@ -177,7 +177,7 @@ export default function DetailLokasi() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 py-6 pt-24">
+      <main className="container mx-auto px-4 py-6 ">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
           <button

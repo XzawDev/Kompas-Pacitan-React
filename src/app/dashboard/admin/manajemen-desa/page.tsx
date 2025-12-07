@@ -22,7 +22,7 @@ export default function ManajemenDesa() {
       return;
     }
 
-    if (user?.role !== "admin") {
+    if (user?.role !== "admin" && user?.role !== "owner") {
       router.push("/dashboard");
       return;
     }
@@ -81,7 +81,7 @@ export default function ManajemenDesa() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "owner")) {
     return null;
   }
 

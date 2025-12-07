@@ -39,6 +39,7 @@ const pinColors: { [key: string]: string } = {
   UMKM: "#8b5cf6",
   "Aset Desa": "#ef4444",
   Infrastruktur: "#06b6d4",
+  Sejarah: "#eab308",
 };
 
 // Layer configuration
@@ -49,6 +50,7 @@ const layerConfigs = {
   umkm: { label: "UMKM", color: "bg-purple-500" },
   aset: { label: "Aset Desa", color: "bg-red-500" },
   infrastruktur: { label: "Infrastruktur", color: "bg-teal-500" },
+  sejarah: { label: "Sejarah", color: "bg-yellow-500" },
 };
 
 // Initial filter state
@@ -64,6 +66,7 @@ const initialActiveLayers = {
   pertanian: true,
   perikanan: true,
   umkm: true,
+  sejarah: true,
   aset: false,
   infrastruktur: false,
 };
@@ -137,6 +140,7 @@ export default function PetaPotensi() {
           pertanian: "Pertanian",
           perikanan: "Perikanan",
           umkm: "UMKM",
+          sejarah: "Sejarah",
           aset: "Aset Desa",
           infrastruktur: "Infrastruktur",
         };
@@ -264,7 +268,7 @@ export default function PetaPotensi() {
             color: white; 
             font-size: 10px;
           ">
-            <i class="fas fa-map-pin"></i>
+            <i class="fas fa-map-marker-alt"></i>
           </div>
         </div>
       `,
