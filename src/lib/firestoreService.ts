@@ -14,7 +14,7 @@ import {
   serverTimestamp,
   DocumentData,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 import {
   Location,
   InvestmentOpportunity,
@@ -23,6 +23,7 @@ import {
   AIRecommendation,
   BlobUploadResponse,
   Desa,
+  UserManagementStats,
 } from "./types";
 
 // ==================== USER OPERATIONS ====================
@@ -768,6 +769,111 @@ export const updateInvestment = async (
     });
   } catch (error) {
     console.error("Error updating investment:", error);
+    throw error;
+  }
+};
+
+// ==================== USER MANAGEMENT OPERATIONS ====================
+
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const users: User[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      users.push({
+        uid: doc.id,
+        email: data.email,
+        displayName: data.displayName || data.username,
+        username: data.username,
+        role: data.role || "user",
+        photoURL: data.photoURL,
+        isActive: data.isActive !== false, // Default true jika tidak ada
+        createdAt: convertFirestoreTimestamp(data.createdAt),
+        lastLoginAt: convertFirestoreTimestamp(data.lastLoginAt),
+      } as User);
+    });
+
+    return users;
+  } catch (error) {
+    console.error("Error getting all users:", error);
+    throw error;
+  }
+};
+
+export const getUserManagementStats =
+  async (): Promise<UserManagementStats> => {
+    try {
+      const users = await getAllUsers();
+
+      return {
+        totalUsers: users.length,
+        activeUsers: users.filter((user) => user.isActive).length,
+        adminUsers: users.filter((user) => user.role === "admin").length,
+        ownerUsers: users.filter((user) => user.role === "owner").length,
+      };
+    } catch (error) {
+      console.error("Error getting user management stats:", error);
+      throw error;
+    }
+  };
+
+export const updateUserRole = async (
+  userId: string,
+  role: "user" | "admin" | "owner"
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, "users", userId), {
+      role,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    throw error;
+  }
+};
+
+export const deactivateUser = async (userId: string): Promise<void> => {
+  try {
+    await updateDoc(doc(db, "users", userId), {
+      isActive: false,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error deactivating user:", error);
+    throw error;
+  }
+};
+
+// Fungsi untuk menghapus user (menggunakan API route)
+export const deleteUserPermanently = async (userId: string): Promise<void> => {
+  try {
+    const currentUser = auth.currentUser; // auth sudah diimpor
+    if (!currentUser) {
+      throw new Error("User tidak terautentikasi");
+    }
+
+    const response = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId,
+        currentUserId: currentUser.uid,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Gagal menghapus user");
+    }
+
+    console.log(`✅ User ${userId} berhasil dihapus secara permanen`);
+  } catch (error) {
+    console.error("Error deleting user permanently:", error);
     throw error;
   }
 };

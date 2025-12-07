@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     userData: {
       email: string;
       username: string;
-      role?: "user" | "admin";
+      role?: "user" | "admin" | "owner";
     }
   ) => {
     try {
@@ -72,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         displayName: userData.username,
         username: userData.username,
         role: userData.role || "user",
+        isActive: true, // Tambahkan default value
         createdAt: serverTimestamp(), // Pastikan menggunakan serverTimestamp()
         updatedAt: serverTimestamp(),
       });
@@ -100,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           username: data.username,
           role: data.role || "user",
           photoURL: data.photoURL,
+          isActive: data.isActive !== false, // Default true jika tidak ada
           createdAt: createdAt,
         } as User;
       }

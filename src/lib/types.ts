@@ -4,8 +4,17 @@ export interface User {
   displayName: string;
   photoURL?: string;
   username?: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "owner";
   createdAt: string;
+  lastLoginAt?: string;
+  isActive?: boolean; // Tambahkan properti ini
+}
+
+export interface UserManagementStats {
+  totalUsers: number;
+  activeUsers: number;
+  adminUsers: number;
+  ownerUsers: number;
 }
 
 export interface AIRecommendation {
@@ -29,7 +38,8 @@ export interface Location {
     | "Perikanan"
     | "UMKM"
     | "Infrastruktur"
-    | "Aset Desa";
+    | "Aset Desa"
+    | "Sejarah";
   kecamatan: string;
   desa: string;
   description: string;
