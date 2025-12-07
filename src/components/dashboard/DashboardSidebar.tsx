@@ -66,7 +66,7 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
   // Menu untuk admin - Manajemen Data
   const adminManagementNavigation = [
     {
-      name: "Persetujuan Admin",
+      name: "Manajemen Pengajuan",
       href: "/dashboard/admin/approvals",
       icon: "fas fa-shield-alt",
       current: pathname === "/dashboard/admin/approvals",
@@ -89,6 +89,12 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
       icon: "fas fa-business-time",
       current: pathname === "/dashboard/admin/manajemen-investasi",
     },
+    {
+      name: "Manajemen User",
+      href: "/dashboard/admin/manajemen-user",
+      icon: "fas fa-users-cog",
+      current: pathname === "/dashboard/admin/manajemen-user",
+    },
     // {
     //   name: "Manajemen User",
     //   href: "/dashboard/admin/manajemen-user",
@@ -101,6 +107,7 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
     ...baseNavigation,
     // ...(user?.role === "admin" ? adminAddNavigation : []),
     ...(user?.role === "admin" ? adminManagementNavigation : []),
+    ...(user?.role === "owner" ? adminManagementNavigation : []),
   ];
 
   return (
