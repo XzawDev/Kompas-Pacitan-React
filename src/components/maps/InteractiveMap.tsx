@@ -37,12 +37,13 @@ const InteractiveMap = ({
   }, []);
 
   const pinColors: { [key: string]: string } = {
-    Pariwisata: "blue",
-    Pertanian: "green",
-    UMKM: "purple",
-    Perikanan: "orange",
-    Infrastruktur: "red",
-    "Aset Desa": "teal",
+    Pariwisata: "#3b82f6",
+    Pertanian: "#10b981",
+    Perikanan: "#f59e0b",
+    UMKM: "#8b5cf6",
+    "Aset Desa": "#ef4444",
+    Infrastruktur: "#06b6d4",
+    Sejarah: "#eab308",
   };
 
   // Create custom icons

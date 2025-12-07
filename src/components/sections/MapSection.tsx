@@ -46,25 +46,37 @@ const MapSection = ({ locations, onLocationSelect }: MapSectionProps) => {
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center bg-white p-3 rounded-lg shadow-sm">
-                <div className="w-3 h-3 bg-blue-700 rounded-full mr-3"></div>
+                <div
+                  className="w-3 h-3 rounded-full mr-3"
+                  style={{ backgroundColor: "#3b82f6" }}
+                ></div>
                 <span className="font-medium text-sm">
                   Pariwisata - Objek wisata dan destinasi
                 </span>
               </div>
               <div className="flex items-center bg-white p-3 rounded-lg shadow-sm">
-                <div className="w-3 h-3 bg-green-700 rounded-full mr-3"></div>
+                <div
+                  className="w-3 h-3 rounded-full mr-3"
+                  style={{ backgroundColor: "#10b981" }}
+                ></div>
                 <span className="font-medium text-sm">
                   Pertanian - Lahan dan komoditas
                 </span>
               </div>
               <div className="flex items-center bg-white p-3 rounded-lg shadow-sm">
-                <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                <div
+                  className="w-3 h-3 rounded-full mr-3"
+                  style={{ backgroundColor: "#8b5cf6" }}
+                ></div>
                 <span className="font-medium text-sm">
                   UMKM - Usaha dan produk lokal
                 </span>
               </div>
               <div className="flex items-center bg-white p-3 rounded-lg shadow-sm">
-                <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                <div
+                  className="w-3 h-3 rounded-full mr-3"
+                  style={{ backgroundColor: "#f59e0b" }}
+                ></div>
                 <span className="font-medium text-sm">
                   Perikanan - Potensi kelautan
                 </span>
