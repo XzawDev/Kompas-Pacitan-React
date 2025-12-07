@@ -63,8 +63,7 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
   //     },
   //   ];
 
-  // Menu untuk admin - Manajemen Data
-  const adminManagementNavigation = [
+  const ownerManagementNavigation = [
     {
       name: "Manajemen Pengajuan",
       href: "/dashboard/admin/approvals",
@@ -95,6 +94,39 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
       icon: "fas fa-users-cog",
       current: pathname === "/dashboard/admin/manajemen-user",
     },
+  ];
+  // Menu untuk admin - Manajemen Data
+  const adminManagementNavigation = [
+    {
+      name: "Manajemen Pengajuan",
+      href: "/dashboard/admin/approvals",
+      icon: "fas fa-shield-alt",
+      current: pathname === "/dashboard/admin/approvals",
+    },
+    {
+      name: "Manajemen Lokasi",
+      href: "/dashboard/admin/manajemen-lokasi",
+      icon: "fas fa-map-marked-alt",
+      current: pathname === "/dashboard/admin/manajemen-lokasi",
+    },
+    {
+      name: "Manajemen Desa",
+      href: "/dashboard/admin/manajemen-desa",
+      icon: "fas fa-home",
+      current: pathname === "/dashboard/admin/manajemen-desa",
+    },
+    {
+      name: "Manajemen Investasi",
+      href: "/dashboard/admin/manajemen-investasi",
+      icon: "fas fa-business-time",
+      current: pathname === "/dashboard/admin/manajemen-investasi",
+    },
+    // {
+    //   name: "Manajemen User",
+    //   href: "/dashboard/admin/manajemen-user",
+    //   icon: "fas fa-users-cog",
+    //   current: pathname === "/dashboard/admin/manajemen-user",
+    // },
     // {
     //   name: "Manajemen User",
     //   href: "/dashboard/admin/manajemen-user",
@@ -107,7 +139,7 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
     ...baseNavigation,
     // ...(user?.role === "admin" ? adminAddNavigation : []),
     ...(user?.role === "admin" ? adminManagementNavigation : []),
-    ...(user?.role === "owner" ? adminManagementNavigation : []),
+    ...(user?.role === "owner" ? ownerManagementNavigation : []),
   ];
 
   return (
