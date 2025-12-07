@@ -1,4 +1,26 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+
 const CTA = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Cek status autentikasi
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Jika user sudah login, jangan render apa-apa
+  if (isLoggedIn) {
+    return null;
+  }
+
   return (
     <section className="py-16 gradient-bg text-white relative overflow-hidden">
       <div className="floating-shape floating-shape-1"></div>
@@ -17,7 +39,7 @@ const CTA = () => {
         </p>
         <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
           <a
-            href="/login"
+            href="/register"
             className="btn-accent text-dark font-semibold px-6 py-3 rounded-xl text-base shadow-lg"
           >
             Daftar Sekarang
